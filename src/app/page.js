@@ -155,18 +155,35 @@ export default function AdminAnalyticsDashboard() {
         return { bg: "#22C55E", text: "#FFFFFF", label: "✨ SET TO LOCK SCREEN" };
       case "download_success":
         return { bg: "#38BDF8", text: "#0A0812", label: "⬇ DOWNLOAD COMPLETED" };
-      case "preview_stream_start":
-        return { bg: "#D4AF37", text: "#0A0812", label: "🎬 PREVIEW STREAMED" };
+      case "download_failed":
+      case "download_error":
+        return { bg: "#EF4444", text: "#FFFFFF", label: "❌ DOWNLOAD FAILED" };
       case "download_start":
         return { bg: "#A855F7", text: "#FFFFFF", label: "⏳ DOWNLOAD STARTED" };
+      case "preview_stream_ready":
+      case "preview_stream_start":
+        return { bg: "#D4AF37", text: "#0A0812", label: "🎬 PREVIEW STREAMED" };
+      case "preview_stream_error":
+      case "preview_stream_failed":
+        return { bg: "#F87171", text: "#FFFFFF", label: "⚠️ PREVIEW ERROR" };
       case "delete_local_storage":
         return { bg: "#EF4444", text: "#FFFFFF", label: "🗑️ FREED STORAGE" };
+      case "explore_store_tab_clicked":
+        return { bg: "#F59E0B", text: "#0A0812", label: "🏬 EXPLORE STORE TAB" };
+      case "my_wallpapers_tab_clicked":
+        return { bg: "#3B82F6", text: "#FFFFFF", label: "🖼️ MY WALLPAPERS TAB" };
+      case "store_catalog_fetch":
+        return { bg: "#10B981", text: "#FFFFFF", label: "📡 CATALOG FETCH" };
+      case "set_wallpaper_button_click":
+        return { bg: "#8B5CF6", text: "#FFFFFF", label: "📱 SET WALLPAPER TAP" };
+      case "thumbnail_ready":
+        return { bg: "#06B6D4", text: "#0A0812", label: "🖼️ THUMB EXTRACTED" };
       case "tab_switch":
         return { bg: "#64748B", text: "#FFFFFF", label: "🧭 TAB NAVIGATION" };
       case "app_open":
         return { bg: "#818CF8", text: "#FFFFFF", label: "📱 APP LAUNCH" };
       default:
-        return { bg: "#334155", text: "#E2E8F0", label: type.toUpperCase() };
+        return { bg: "#334155", text: "#E2E8F0", label: (type || "ACTION").toUpperCase().replace(/_/g, " ") };
     }
   };
 

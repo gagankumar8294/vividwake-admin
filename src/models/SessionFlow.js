@@ -4,12 +4,18 @@ import mongoose from "mongoose";
 const eventSchema = new mongoose.Schema(
   {
     type: { type: String, required: true },
+    action: { type: String, default: "" },
     target: { type: String, default: "" },
+    status: { type: String, default: "SUCCESS" },
+    durationMs: { type: Number, default: 0 },
+    durationSec: { type: String, default: "" },
+    errorType: { type: String, default: "" },
+    errorMessage: { type: String, default: "" },
     dwellMs: { type: Number, default: 0 },
     elapsedSessionMs: { type: Number, default: 0 },
     timestamp: { type: Date, default: Date.now }
   },
-  { _id: false }
+  { _id: false, strict: false }
 );
 
 const sessionFlowSchema = new mongoose.Schema(
@@ -27,7 +33,8 @@ const sessionFlowSchema = new mongoose.Schema(
     events: [eventSchema]
   },
   {
-    timestamps: true
+    timestamps: true,
+    strict: false
   }
 );
 
