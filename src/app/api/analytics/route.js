@@ -23,9 +23,11 @@ export async function GET(request) {
     await connectDB();
 
     const dateFilter = searchParams.get("date"); // YYYY-MM-DD
-    const typeFilter = searchParams.get("type") || "all"; // all, auth, anon
+    const typeFilter = searchParams.get("type") || "all"; // all, auth, anon, errors
+    const searchParam = searchParams.get("search") || "";
+    const sortBy = searchParams.get("sortBy") || "recent";
     const page = parseInt(searchParams.get("page") || "1", 10);
-    const limit = parseInt(searchParams.get("limit") || "20", 10);
+    const limit = parseInt(searchParams.get("limit") || "30", 10);
     const skip = (page - 1) * limit;
 
     let query = {};
@@ -37,23 +39,48 @@ export async function GET(request) {
       query.createdAt = { $gte: startOfDay, $lte: endOfDay };
     }
 
-    // 2. Filter by user type
+    // 2. Filter by user type or error presence
     if (typeFilter === "auth") {
       query.userId = { $ne: null };
     } else if (typeFilter === "anon") {
       query.userId = null;
+    } else if (typeFilter === "errors") {
+      query["events.status"] = "FAILED";
     }
 
-    // 3. Query sessions
+    // 3. Search by User, Device, Session, or Action
+    if (searchParam.trim()) {
+      const q = searchParam.trim();
+      query.$or = [
+        { email: { $regex: q, $options: "i" } },
+        { userName: { $regex: q, $options: "i" } },
+        { deviceBrand: { $regex: q, $options: "i" } },
+        { deviceModel: { $regex: q, $options: "i" } },
+        { deviceId: { $regex: q, $options: "i" } },
+        { sessionId: { $regex: q, $options: "i" } },
+        { "events.target": { $regex: q, $options: "i" } },
+        { "events.action": { $regex: q, $options: "i" } }
+      ];
+    }
+
+    // 4. Sorting logic
+    let sortObj = { updatedAt: -1 };
+    if (sortBy === "oldest") {
+      sortObj = { createdAt: 1 };
+    } else if (sortBy === "duration") {
+      sortObj = { totalDuration: -1 };
+    }
+
+    // 5. Query sessions
     const sessions = await SessionFlow.find(query)
-      .sort({ updatedAt: -1 })
+      .sort(sortObj)
       .skip(skip)
       .limit(limit)
       .lean();
 
     const totalRecords = await SessionFlow.countDocuments(query);
 
-    // 4. Calculate Aggregate Overview KPIs
+    // 6. Calculate Aggregate Overview KPIs
     const totalSessions = await SessionFlow.countDocuments();
     const uniqueDevices = await SessionFlow.distinct("deviceId");
     const authUsers = await SessionFlow.distinct("userId", { userId: { $ne: null } });

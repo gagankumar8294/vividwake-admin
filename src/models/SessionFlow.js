@@ -24,6 +24,8 @@ const sessionFlowSchema = new mongoose.Schema(
     deviceId: { type: String, required: true, index: true },
     userId: { type: String, default: null, index: true },
     email: { type: String, default: "" },
+    userName: { type: String, default: "" },
+    userPhoto: { type: String, default: "" },
     deviceBrand: { type: String, default: "" },
     deviceModel: { type: String, default: "" },
     osVersion: { type: String, default: "" },
