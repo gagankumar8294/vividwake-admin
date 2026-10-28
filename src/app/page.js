@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
   FiUsers,
+  FiUser,
   FiSmartphone,
   FiEye,
   FiDownload,
@@ -19,6 +20,7 @@ import {
   FiSearch,
   FiFilter,
   FiAlertTriangle,
+  FiAlertCircle,
   FiCheck,
   FiX,
   FiZap,
@@ -26,7 +28,15 @@ import {
   FiSliders,
   FiChevronDown,
   FiChevronUp,
-  FiCopy
+  FiCopy,
+  FiImage,
+  FiSettings,
+  FiBell,
+  FiPlay,
+  FiKey,
+  FiNavigation,
+  FiMousePointer,
+  FiXCircle
 } from "react-icons/fi";
 
 export default function AdminAnalyticsDashboard() {
@@ -219,56 +229,73 @@ export default function AdminAnalyticsDashboard() {
     return list;
   }, [sessions, sortBy]);
 
-  // Event category & styling mapper
+  // Event category & SVG icon mapper (Zero Emojis)
   const getEventBadgeStyle = (type, action) => {
     const key = (type || action || "").toLowerCase();
     if (key.includes("apply_wallpaper")) {
-      return { bg: "#10B981", border: "#059669", text: "#FFFFFF", label: "✨ SET WALLPAPER", icon: "📱", category: "wallpapers" };
+      return { bg: "#10B981", border: "#059669", text: "#FFFFFF", label: "SET WALLPAPER", iconType: "wallpaper", category: "wallpapers" };
     }
     if (key.includes("download_success")) {
-      return { bg: "#0EA5E9", border: "#0284C7", text: "#FFFFFF", label: "⬇ DOWNLOAD SUCCESS", icon: "💾", category: "wallpapers" };
+      return { bg: "#0EA5E9", border: "#0284C7", text: "#FFFFFF", label: "DOWNLOAD COMPLETED", iconType: "download", category: "wallpapers" };
     }
     if (key.includes("download_failed") || key.includes("download_error")) {
-      return { bg: "#EF4444", border: "#DC2626", text: "#FFFFFF", label: "❌ DOWNLOAD FAILED", icon: "⚠️", category: "errors" };
+      return { bg: "#EF4444", border: "#DC2626", text: "#FFFFFF", label: "DOWNLOAD FAILED", iconType: "download_fail", category: "errors" };
     }
     if (key.includes("download_start")) {
-      return { bg: "#8B5CF6", border: "#7C3AED", text: "#FFFFFF", label: "⏳ DOWNLOAD STARTED", icon: "⏳", category: "wallpapers" };
+      return { bg: "#8B5CF6", border: "#7C3AED", text: "#FFFFFF", label: "DOWNLOAD STARTED", iconType: "download", category: "wallpapers" };
     }
     if (key.includes("preview_stream")) {
-      return { bg: "#F59E0B", border: "#D97706", text: "#0A0812", label: "🎬 PREVIEW STREAM", icon: "▶️", category: "wallpapers" };
+      return { bg: "#F59E0B", border: "#D97706", text: "#0A0812", label: "PREVIEW STREAMED", iconType: "preview", category: "wallpapers" };
     }
     if (key.includes("delete_local_storage")) {
-      return { bg: "#EF4444", border: "#DC2626", text: "#FFFFFF", label: "🗑️ STORAGE CLEARED", icon: "🗑️", category: "clicks" };
+      return { bg: "#EF4444", border: "#DC2626", text: "#FFFFFF", label: "FREED STORAGE", iconType: "trash", category: "clicks" };
     }
     if (key.includes("google_signin_completed")) {
-      return { bg: "#22C55E", border: "#16A34A", text: "#FFFFFF", label: "✅ GOOGLE LOGIN OK", icon: "🔑", category: "auth" };
+      return { bg: "#22C55E", border: "#16A34A", text: "#FFFFFF", label: "GOOGLE LOGIN SUCCESS", iconType: "auth", category: "auth" };
     }
     if (key.includes("google_signin")) {
-      return { bg: "#3B82F6", border: "#2563EB", text: "#FFFFFF", label: "🔑 GOOGLE SIGN-IN", icon: "🔑", category: "auth" };
+      return { bg: "#3B82F6", border: "#2563EB", text: "#FFFFFF", label: "GOOGLE SIGN-IN", iconType: "auth", category: "auth" };
     }
     if (key.includes("sign_out")) {
-      return { bg: "#64748B", border: "#475569", text: "#FFFFFF", label: "🚪 SIGN OUT", icon: "🚪", category: "auth" };
+      return { bg: "#64748B", border: "#475569", text: "#FFFFFF", label: "USER SIGN-OUT", iconType: "sign_out", category: "auth" };
     }
     if (key.includes("tab_clicked") || key.includes("tab_switch")) {
-      return { bg: "#A855F7", border: "#9333EA", text: "#FFFFFF", label: "🧭 TAB SWITCH", icon: "📑", category: "clicks" };
+      return { bg: "#A855F7", border: "#9333EA", text: "#FFFFFF", label: "TAB NAVIGATION", iconType: "tab", category: "clicks" };
     }
     if (key.includes("notification")) {
-      return { bg: "#EC4899", border: "#DB2777", text: "#FFFFFF", label: "🔔 NOTIFICATION", icon: "🔔", category: "clicks" };
+      return { bg: "#EC4899", border: "#DB2777", text: "#FFFFFF", label: "NOTIFICATION EVENT", iconType: "bell", category: "clicks" };
     }
     if (key.includes("app_open")) {
-      return { bg: "#6366F1", border: "#4F46E5", text: "#FFFFFF", label: "🚀 APP OPEN", icon: "📱", category: "clicks" };
+      return { bg: "#6366F1", border: "#4F46E5", text: "#FFFFFF", label: "APP LAUNCH", iconType: "app", category: "clicks" };
     }
     if (key.includes("toggle") || key.includes("change")) {
-      return { bg: "#14B8A6", border: "#0D9488", text: "#FFFFFF", label: "⚙️ CONFIG CHANGE", icon: "⚙️", category: "clicks" };
+      return { bg: "#14B8A6", border: "#0D9488", text: "#FFFFFF", label: "SETTING CHANGED", iconType: "settings", category: "clicks" };
     }
     return {
       bg: "#334155",
       border: "#475569",
       text: "#E2E8F0",
       label: (key || "ACTION").toUpperCase().replace(/_/g, " "),
-      icon: "⚡",
+      iconType: "action",
       category: "clicks"
     };
+  };
+
+  const renderBadgeIcon = (iconType) => {
+    switch (iconType) {
+      case "wallpaper": return <FiImage size={13} />;
+      case "download": return <FiDownload size={13} />;
+      case "download_fail": return <FiXCircle size={13} />;
+      case "preview": return <FiPlay size={13} />;
+      case "trash": return <FiTrash2 size={13} />;
+      case "auth": return <FiKey size={13} />;
+      case "sign_out": return <FiLogOut size={13} />;
+      case "tab": return <FiNavigation size={13} />;
+      case "bell": return <FiBell size={13} />;
+      case "app": return <FiSmartphone size={13} />;
+      case "settings": return <FiSettings size={13} />;
+      default: return <FiZap size={13} />;
+    }
   };
 
   // Selected session metrics calculation
@@ -534,7 +561,7 @@ export default function AdminAnalyticsDashboard() {
             </button>
           </form>
 
-          {/* User Type Tabs */}
+          {/* User Type Tabs with Vector Icons */}
           <div style={styles.userFilterRow}>
             <button
               onClick={() => { setFilterType("all"); setPage(1); }}
@@ -544,7 +571,8 @@ export default function AdminAnalyticsDashboard() {
                 color: "#FFFFFF"
               }}
             >
-              All Visitors
+              <FiUsers size={13} style={{ marginRight: "6px" }} />
+              <span>All Visitors</span>
             </button>
             <button
               onClick={() => { setFilterType("auth"); setPage(1); }}
@@ -554,7 +582,8 @@ export default function AdminAnalyticsDashboard() {
                 color: "#FFFFFF"
               }}
             >
-              👤 Signed In
+              <FiUser size={13} style={{ marginRight: "6px" }} />
+              <span>Signed In</span>
             </button>
             <button
               onClick={() => { setFilterType("anon"); setPage(1); }}
@@ -564,7 +593,8 @@ export default function AdminAnalyticsDashboard() {
                 color: "#FFFFFF"
               }}
             >
-              📱 Anonymous
+              <FiSmartphone size={13} style={{ marginRight: "6px" }} />
+              <span>Anonymous</span>
             </button>
             <button
               onClick={() => { setFilterType("errors"); setPage(1); }}
@@ -574,7 +604,8 @@ export default function AdminAnalyticsDashboard() {
                 color: "#FFFFFF"
               }}
             >
-              ⚠️ Has Errors
+              <FiAlertTriangle size={13} style={{ marginRight: "6px" }} />
+              <span>Has Errors</span>
             </button>
           </div>
 
@@ -596,7 +627,7 @@ export default function AdminAnalyticsDashboard() {
         </div>
       </section>
 
-      {/* Main Two-Column Explorer Layout */}
+      {/* Main Two-Column Explorer Layout (Full-Height Flex Grid) */}
       <div style={styles.mainGrid}>
         {/* LEFT COLUMN: Sessions List */}
         <div style={styles.sessionsCol}>
@@ -667,12 +698,14 @@ export default function AdminAnalyticsDashboard() {
                           </span>
                           {sess.userId && (
                             <span style={styles.googleVerifiedBadge}>
+                              <FiCheck size={10} style={{ marginRight: "2px" }} />
                               G-Auth
                             </span>
                           )}
                           {errorCount > 0 && (
                             <span style={styles.errorIndicatorBadge}>
-                              ⚠️ {errorCount}
+                              <FiAlertTriangle size={10} style={{ marginRight: "2px" }} />
+                              {errorCount}
                             </span>
                           )}
                         </div>
@@ -686,7 +719,7 @@ export default function AdminAnalyticsDashboard() {
                       <span style={styles.sessionTimeTag}>{formattedTime}</span>
                     </div>
 
-                    {/* Metadata Badges */}
+                    {/* Metadata Badges with SVG Icons */}
                     <div style={styles.sessionMetaBadges}>
                       <span style={styles.metaChip}>
                         <FiSmartphone size={11} /> {sess.deviceModel || "Android"}
@@ -695,7 +728,7 @@ export default function AdminAnalyticsDashboard() {
                         <FiClock size={11} /> {formatDuration(sess.totalDuration)}
                       </span>
                       <span style={{ ...styles.metaChip, backgroundColor: "rgba(168, 85, 247, 0.15)", color: "#C084FC" }}>
-                        ⚡ {eventCount} {eventCount === 1 ? "action" : "actions"}
+                        <FiZap size={11} /> {eventCount} {eventCount === 1 ? "action" : "actions"}
                       </span>
                     </div>
                   </div>
@@ -730,12 +763,12 @@ export default function AdminAnalyticsDashboard() {
         <div style={styles.timelineCol}>
           {!selectedSession ? (
             <div style={styles.emptyCard}>
-              <FiLayers size={40} color="#6E6188" />
-              <p style={{ marginTop: "12px", fontSize: "15px", fontWeight: "600" }}>
+              <FiLayers size={44} color="#6E6188" />
+              <p style={{ marginTop: "14px", fontSize: "16px", fontWeight: "600", color: "#E2E8F0" }}>
                 Select a session on the left to inspect its live journey
               </p>
-              <span style={{ fontSize: "13px", color: "#9D8EB9" }}>
-                Every single click, duration in ms, and try/catch block will appear here
+              <span style={{ fontSize: "13px", color: "#9D8EB9", marginTop: "4px" }}>
+                Every single click, execution duration in ms, and exception block will appear here
               </span>
             </div>
           ) : (
@@ -770,10 +803,12 @@ export default function AdminAnalyticsDashboard() {
                       </h2>
                       {selectedSession.userId ? (
                         <span style={styles.authStatusBadge}>
-                          ✓ Google Account Verified
+                          <FiCheckCircle size={12} style={{ marginRight: "4px" }} />
+                          Google Account Verified
                         </span>
                       ) : (
                         <span style={styles.guestStatusBadge}>
+                          <FiSmartphone size={12} style={{ marginRight: "4px" }} />
                           Anonymous Guest
                         </span>
                       )}
@@ -845,7 +880,8 @@ export default function AdminAnalyticsDashboard() {
                       color: "#FFFFFF"
                     }}
                   >
-                    All Actions ({sessionStats.total})
+                    <FiActivity size={12} style={{ marginRight: "4px" }} />
+                    <span>All Actions ({sessionStats.total})</span>
                   </button>
                   <button
                     onClick={() => setTimelineFilter("wallpapers")}
@@ -855,7 +891,8 @@ export default function AdminAnalyticsDashboard() {
                       color: "#FFFFFF"
                     }}
                   >
-                    🖼️ Wallpapers
+                    <FiImage size={12} style={{ marginRight: "4px" }} />
+                    <span>Wallpapers</span>
                   </button>
                   <button
                     onClick={() => setTimelineFilter("clicks")}
@@ -865,7 +902,8 @@ export default function AdminAnalyticsDashboard() {
                       color: "#FFFFFF"
                     }}
                   >
-                    👆 UI Clicks &amp; Tabs
+                    <FiMousePointer size={12} style={{ marginRight: "4px" }} />
+                    <span>UI &amp; Clicks</span>
                   </button>
                   <button
                     onClick={() => setTimelineFilter("auth")}
@@ -875,7 +913,8 @@ export default function AdminAnalyticsDashboard() {
                       color: "#FFFFFF"
                     }}
                   >
-                    🔑 Auth &amp; Account
+                    <FiKey size={12} style={{ marginRight: "4px" }} />
+                    <span>Auth &amp; Account</span>
                   </button>
                   <button
                     onClick={() => setTimelineFilter("errors")}
@@ -885,7 +924,8 @@ export default function AdminAnalyticsDashboard() {
                       color: "#FFFFFF"
                     }}
                   >
-                    ⚠️ Errors ({sessionStats.failed})
+                    <FiAlertCircle size={12} style={{ marginRight: "4px" }} />
+                    <span>Errors ({sessionStats.failed})</span>
                   </button>
                 </div>
 
@@ -895,7 +935,7 @@ export default function AdminAnalyticsDashboard() {
                     <FiSearch size={14} color="#9D8EB9" />
                     <input
                       type="text"
-                      placeholder="Filter this session's events..."
+                      placeholder="Filter session events..."
                       value={timelineSearch}
                       onChange={(e) => setTimelineSearch(e.target.value)}
                       style={styles.timelineSearchInput}
@@ -913,7 +953,8 @@ export default function AdminAnalyticsDashboard() {
                     style={styles.btnSortOrder}
                     title="Toggle timeline order"
                   >
-                    {timelineSortOrder === "asc" ? "Flow: 1 → End" : "Flow: Latest First"}
+                    <FiSliders size={12} style={{ marginRight: "4px" }} />
+                    <span>{timelineSortOrder === "asc" ? "Flow: 1 → End" : "Flow: Latest First"}</span>
                   </button>
                 </div>
               </div>
@@ -922,7 +963,8 @@ export default function AdminAnalyticsDashboard() {
               <div style={styles.eventsScrollContainer}>
                 {filteredEvents.length === 0 ? (
                   <div style={styles.emptyCard}>
-                    <p style={{ color: "#9D8EB9" }}>No actions match this filter in this session.</p>
+                    <FiActivity size={32} color="#6E6188" />
+                    <p style={{ color: "#9D8EB9", marginTop: "10px" }}>No actions match this filter in this session.</p>
                   </div>
                 ) : (
                   filteredEvents.map((ev, index) => {
@@ -934,12 +976,6 @@ export default function AdminAnalyticsDashboard() {
                       minute: "2-digit",
                       second: "2-digit"
                     });
-
-                    // Format human title
-                    let displayTitle = badge.label;
-                    if (ev.target) {
-                      displayTitle += `: ${ev.target}`;
-                    }
 
                     return (
                       <div key={index} style={styles.eventRowCard}>
@@ -962,7 +998,8 @@ export default function AdminAnalyticsDashboard() {
                           <div style={styles.eventCardTop}>
                             <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                               <span style={{ ...styles.categoryBadge, backgroundColor: badge.bg, color: badge.text }}>
-                                {badge.icon} {badge.label}
+                                {renderBadgeIcon(badge.iconType)}
+                                <span style={{ marginLeft: "5px" }}>{badge.label}</span>
                               </span>
 
                               {ev.status && (
@@ -974,19 +1011,31 @@ export default function AdminAnalyticsDashboard() {
                                     border: `1px solid ${ev.status === "SUCCESS" ? "rgba(34, 197, 94, 0.4)" : "rgba(239, 68, 68, 0.4)"}`
                                   }}
                                 >
-                                  {ev.status === "SUCCESS" ? "✓ SUCCESS" : "✗ FAILED"}
+                                  {ev.status === "SUCCESS" ? (
+                                    <>
+                                      <FiCheck size={10} style={{ marginRight: "3px" }} />
+                                      <span>SUCCESS</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <FiX size={10} style={{ marginRight: "3px" }} />
+                                      <span>FAILED</span>
+                                    </>
+                                  )}
                                 </span>
                               )}
 
                               {(ev.durationMs > 0 || ev.durationSec) && (
                                 <span style={styles.durationChip}>
-                                  ⚡ {ev.durationMs > 0 ? `${ev.durationMs}ms` : `${ev.durationSec}`}
+                                  <FiZap size={10} style={{ marginRight: "3px" }} />
+                                  <span>{ev.durationMs > 0 ? `${ev.durationMs}ms` : `${ev.durationSec}`}</span>
                                 </span>
                               )}
 
                               {ev.dwellMs > 0 && (
                                 <span style={styles.dwellChip}>
-                                  ⏳ {(ev.dwellMs / 1000).toFixed(1)}s dwell
+                                  <FiClock size={10} style={{ marginRight: "3px" }} />
+                                  <span>{(ev.dwellMs / 1000).toFixed(1)}s dwell</span>
                                 </span>
                               )}
                             </div>
@@ -1004,6 +1053,7 @@ export default function AdminAnalyticsDashboard() {
                           {/* Target Tag */}
                           {ev.target && (
                             <div style={styles.targetRow}>
+                              <FiImage size={12} color="#86789D" />
                               <span style={styles.targetLabel}>Target:</span>
                               <span style={styles.targetValue}>{ev.target}</span>
                             </div>
@@ -1046,7 +1096,7 @@ export default function AdminAnalyticsDashboard() {
 }
 
 // ──────────────────────────────────────────────────────────
-// Modern Dark Theme Styles
+// Modern Full-Height Dark Theme Styles (Zero White Space)
 // ──────────────────────────────────────────────────────────
 const styles = {
   loginContainer: {
@@ -1120,14 +1170,16 @@ const styles = {
     marginBottom: "12px"
   },
 
-  // Main Dashboard Layout
+  // Main Dashboard Full-Height Layout
   dashboardContainer: {
     minHeight: "100vh",
+    width: "100%",
     backgroundColor: "#0A0812",
     color: "#F3E8FF",
     display: "flex",
     flexDirection: "column",
-    padding: "16px 24px"
+    padding: "16px 24px",
+    boxSizing: "border-box"
   },
   topHeader: {
     display: "flex",
@@ -1343,12 +1395,15 @@ const styles = {
     flexWrap: "wrap"
   },
   typeBtn: {
+    display: "flex",
+    alignItems: "center",
     padding: "8px 14px",
     borderRadius: "8px",
     border: "1px solid #332650",
     fontSize: "12px",
     fontWeight: "600",
-    cursor: "pointer"
+    cursor: "pointer",
+    transition: "all 0.15s ease"
   },
 
   sortDropdownWrap: {
@@ -1370,13 +1425,15 @@ const styles = {
     cursor: "pointer"
   },
 
-  // Main Grid (Two Columns)
+  // Main Responsive Grid (Filling Full Available Height)
   mainGrid: {
     display: "grid",
-    gridTemplateColumns: "360px 1fr",
+    gridTemplateColumns: "380px 1fr",
     gap: "18px",
     flex: 1,
-    minHeight: "600px"
+    alignItems: "stretch",
+    minHeight: "650px",
+    marginBottom: "16px"
   },
 
   // Left Column: Sessions List
@@ -1386,14 +1443,17 @@ const styles = {
     borderRadius: "14px",
     display: "flex",
     flexDirection: "column",
-    overflow: "hidden"
+    overflow: "hidden",
+    height: "calc(100vh - 280px)",
+    minHeight: "600px"
   },
   colHeader: {
     padding: "14px 16px",
     borderBottom: "1px solid #231C38",
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "center"
+    alignItems: "center",
+    backgroundColor: "#171228"
   },
   colTitle: {
     fontSize: "15px",
@@ -1411,11 +1471,10 @@ const styles = {
   sessionListScroll: {
     flex: 1,
     overflowY: "auto",
-    padding: "10px",
+    padding: "12px",
     display: "flex",
     flexDirection: "column",
-    gap: "8px",
-    maxHeight: "calc(100vh - 360px)"
+    gap: "8px"
   },
   sessionCard: {
     borderRadius: "10px",
@@ -1468,6 +1527,8 @@ const styles = {
     textOverflow: "ellipsis"
   },
   googleVerifiedBadge: {
+    display: "flex",
+    alignItems: "center",
     backgroundColor: "rgba(34, 197, 94, 0.15)",
     color: "#4ADE80",
     fontSize: "9px",
@@ -1476,6 +1537,8 @@ const styles = {
     borderRadius: "4px"
   },
   errorIndicatorBadge: {
+    display: "flex",
+    alignItems: "center",
     backgroundColor: "rgba(239, 68, 68, 0.2)",
     color: "#F87171",
     fontSize: "10px",
@@ -1518,7 +1581,8 @@ const styles = {
     borderTop: "1px solid #231C38",
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "center"
+    alignItems: "center",
+    backgroundColor: "#171228"
   },
   pageBtn: {
     display: "flex",
@@ -1540,17 +1604,21 @@ const styles = {
     borderRadius: "14px",
     display: "flex",
     flexDirection: "column",
-    overflow: "hidden"
+    overflow: "hidden",
+    height: "calc(100vh - 280px)",
+    minHeight: "600px"
   },
   timelineWrapper: {
     display: "flex",
     flexDirection: "column",
-    height: "100%"
+    height: "100%",
+    overflow: "hidden"
   },
   userProfileBanner: {
     padding: "18px 20px",
     borderBottom: "1px solid #261D3D",
-    backgroundColor: "#171228"
+    backgroundColor: "#171228",
+    flexShrink: 0
   },
   userProfileTop: {
     display: "flex",
@@ -1586,6 +1654,8 @@ const styles = {
     color: "#FFFFFF"
   },
   authStatusBadge: {
+    display: "flex",
+    alignItems: "center",
     backgroundColor: "rgba(34, 197, 94, 0.15)",
     color: "#4ADE80",
     border: "1px solid rgba(34, 197, 94, 0.3)",
@@ -1595,6 +1665,8 @@ const styles = {
     borderRadius: "12px"
   },
   guestStatusBadge: {
+    display: "flex",
+    alignItems: "center",
     backgroundColor: "rgba(255, 255, 255, 0.08)",
     color: "#9D8EB9",
     fontSize: "11px",
@@ -1674,7 +1746,8 @@ const styles = {
     justifyContent: "space-between",
     flexWrap: "wrap",
     gap: "10px",
-    backgroundColor: "#161026"
+    backgroundColor: "#161026",
+    flexShrink: 0
   },
   timelineTabsRow: {
     display: "flex",
@@ -1682,6 +1755,8 @@ const styles = {
     flexWrap: "wrap"
   },
   timelineTabBtn: {
+    display: "flex",
+    alignItems: "center",
     padding: "6px 10px",
     borderRadius: "6px",
     border: "1px solid #332650",
@@ -1713,6 +1788,8 @@ const styles = {
     cursor: "pointer"
   },
   btnSortOrder: {
+    display: "flex",
+    alignItems: "center",
     backgroundColor: "#1A142E",
     border: "1px solid #332650",
     color: "#D4AF37",
@@ -1730,8 +1807,7 @@ const styles = {
     padding: "16px 20px",
     display: "flex",
     flexDirection: "column",
-    gap: "14px",
-    maxHeight: "calc(100vh - 430px)"
+    gap: "14px"
   },
   eventRowCard: {
     display: "flex",
@@ -1788,6 +1864,8 @@ const styles = {
     gap: "8px"
   },
   categoryBadge: {
+    display: "flex",
+    alignItems: "center",
     padding: "3px 8px",
     borderRadius: "6px",
     fontSize: "11px",
@@ -1795,12 +1873,16 @@ const styles = {
     letterSpacing: "0.4px"
   },
   statusChip: {
+    display: "flex",
+    alignItems: "center",
     padding: "2px 6px",
     borderRadius: "4px",
     fontSize: "10px",
     fontWeight: "700"
   },
   durationChip: {
+    display: "flex",
+    alignItems: "center",
     backgroundColor: "rgba(234, 179, 8, 0.15)",
     color: "#FBBF24",
     border: "1px solid rgba(234, 179, 8, 0.3)",
@@ -1810,6 +1892,8 @@ const styles = {
     fontWeight: "700"
   },
   dwellChip: {
+    display: "flex",
+    alignItems: "center",
     backgroundColor: "rgba(168, 85, 247, 0.15)",
     color: "#C084FC",
     padding: "2px 6px",
@@ -1882,6 +1966,8 @@ const styles = {
   },
 
   emptyCard: {
+    flex: 1,
+    height: "100%",
     padding: "40px 20px",
     textAlign: "center",
     display: "flex",
