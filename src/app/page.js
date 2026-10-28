@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   FiUsers,
   FiUser,
@@ -56,7 +56,9 @@ export default function AdminAnalyticsDashboard() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
-  const [autoRefresh, setAutoRefresh] = useState(true);
+
+  // Keep auto-refresh OFF by default so page never jumps
+  const [autoRefresh, setAutoRefresh] = useState(false);
 
   // Timeline-specific controls
   const [timelineFilter, setTimelineFilter] = useState("all"); // 'all', 'clicks', 'wallpapers', 'auth', 'errors'
@@ -64,6 +66,12 @@ export default function AdminAnalyticsDashboard() {
   const [timelineSortOrder, setTimelineSortOrder] = useState("asc"); // 'asc' = 1 to N, 'desc' = latest first
   const [expandedEvents, setExpandedEvents] = useState({});
   const [copiedId, setCopiedId] = useState(false);
+
+  // Ref to preserve currently selected session ID across refreshes without jumping
+  const selectedSessionIdRef = useRef(null);
+  useEffect(() => {
+    selectedSessionIdRef.current = selectedSession?.sessionId || null;
+  }, [selectedSession]);
 
   // Check saved password on mount
   useEffect(() => {
@@ -114,19 +122,23 @@ export default function AdminAnalyticsDashboard() {
 
       const data = await res.json();
       if (data.success) {
-        setSessions(data.sessions || []);
+        const fetchedSessions = data.sessions || [];
+        setSessions(fetchedSessions);
         setOverview(data.overview || null);
         setTotalPages(data.pagination?.totalPages || 1);
         setTotalRecords(data.pagination?.totalRecords || 0);
 
-        // Auto-select session
-        if (data.sessions && data.sessions.length > 0) {
-          if (!selectedSession) {
-            setSelectedSession(data.sessions[0]);
+        // Intelligently preserve currently viewed session without jumping
+        if (fetchedSessions.length > 0) {
+          if (selectedSessionIdRef.current) {
+            const existing = fetchedSessions.find((s) => s.sessionId === selectedSessionIdRef.current);
+            if (existing) {
+              setSelectedSession(existing);
+            } else {
+              setSelectedSession(fetchedSessions[0]);
+            }
           } else {
-            const updated = data.sessions.find((s) => s.sessionId === selectedSession.sessionId);
-            if (updated) setSelectedSession(updated);
-            else setSelectedSession(data.sessions[0]);
+            setSelectedSession(fetchedSessions[0]);
           }
         } else {
           setSelectedSession(null);
@@ -145,18 +157,19 @@ export default function AdminAnalyticsDashboard() {
     }
   };
 
+  // Fetch when filters, page, or credentials change
   useEffect(() => {
     if (isAuthenticated && password) {
       fetchAnalytics(password, page, filterType, selectedDate, searchQuery, sortBy);
     }
   }, [isAuthenticated, password, page, filterType, selectedDate, sortBy]);
 
-  // Auto-refresh interval (every 12s)
+  // Optional background auto-refresh (only if user explicitly enables it)
   useEffect(() => {
     if (!isAuthenticated || !autoRefresh) return;
     const interval = setInterval(() => {
       fetchAnalytics(password, page, filterType, selectedDate, searchQuery, sortBy);
-    }, 12000);
+    }, 25000);
     return () => clearInterval(interval);
   }, [isAuthenticated, autoRefresh, password, page, filterType, selectedDate, searchQuery, sortBy]);
 
@@ -215,7 +228,7 @@ export default function AdminAnalyticsDashboard() {
     }));
   };
 
-  // Client-side processed sessions list (with sorting options)
+  // Processed sessions list
   const sortedSessions = useMemo(() => {
     const list = [...sessions];
     if (sortBy === "actions") {
@@ -229,52 +242,49 @@ export default function AdminAnalyticsDashboard() {
     return list;
   }, [sessions, sortBy]);
 
-  // Event category & SVG icon mapper (Zero Emojis)
+  // Unified Clean Color & Icon Mapper (No Rainbow Emojis)
   const getEventBadgeStyle = (type, action) => {
     const key = (type || action || "").toLowerCase();
     if (key.includes("apply_wallpaper")) {
-      return { bg: "#10B981", border: "#059669", text: "#FFFFFF", label: "SET WALLPAPER", iconType: "wallpaper", category: "wallpapers" };
+      return { label: "SET WALLPAPER", iconType: "wallpaper", category: "wallpapers" };
     }
     if (key.includes("download_success")) {
-      return { bg: "#0EA5E9", border: "#0284C7", text: "#FFFFFF", label: "DOWNLOAD COMPLETED", iconType: "download", category: "wallpapers" };
+      return { label: "DOWNLOAD COMPLETED", iconType: "download", category: "wallpapers" };
     }
     if (key.includes("download_failed") || key.includes("download_error")) {
-      return { bg: "#EF4444", border: "#DC2626", text: "#FFFFFF", label: "DOWNLOAD FAILED", iconType: "download_fail", category: "errors" };
+      return { label: "DOWNLOAD FAILED", iconType: "download_fail", category: "errors" };
     }
     if (key.includes("download_start")) {
-      return { bg: "#8B5CF6", border: "#7C3AED", text: "#FFFFFF", label: "DOWNLOAD STARTED", iconType: "download", category: "wallpapers" };
+      return { label: "DOWNLOAD STARTED", iconType: "download", category: "wallpapers" };
     }
     if (key.includes("preview_stream")) {
-      return { bg: "#F59E0B", border: "#D97706", text: "#0A0812", label: "PREVIEW STREAMED", iconType: "preview", category: "wallpapers" };
+      return { label: "PREVIEW STREAMED", iconType: "preview", category: "wallpapers" };
     }
     if (key.includes("delete_local_storage")) {
-      return { bg: "#EF4444", border: "#DC2626", text: "#FFFFFF", label: "FREED STORAGE", iconType: "trash", category: "clicks" };
+      return { label: "FREED STORAGE", iconType: "trash", category: "clicks" };
     }
     if (key.includes("google_signin_completed")) {
-      return { bg: "#22C55E", border: "#16A34A", text: "#FFFFFF", label: "GOOGLE LOGIN SUCCESS", iconType: "auth", category: "auth" };
+      return { label: "GOOGLE LOGIN SUCCESS", iconType: "auth", category: "auth" };
     }
     if (key.includes("google_signin")) {
-      return { bg: "#3B82F6", border: "#2563EB", text: "#FFFFFF", label: "GOOGLE SIGN-IN", iconType: "auth", category: "auth" };
+      return { label: "GOOGLE SIGN-IN", iconType: "auth", category: "auth" };
     }
     if (key.includes("sign_out")) {
-      return { bg: "#64748B", border: "#475569", text: "#FFFFFF", label: "USER SIGN-OUT", iconType: "sign_out", category: "auth" };
+      return { label: "USER SIGN-OUT", iconType: "sign_out", category: "auth" };
     }
     if (key.includes("tab_clicked") || key.includes("tab_switch")) {
-      return { bg: "#A855F7", border: "#9333EA", text: "#FFFFFF", label: "TAB NAVIGATION", iconType: "tab", category: "clicks" };
+      return { label: "TAB NAVIGATION", iconType: "tab", category: "clicks" };
     }
     if (key.includes("notification")) {
-      return { bg: "#EC4899", border: "#DB2777", text: "#FFFFFF", label: "NOTIFICATION EVENT", iconType: "bell", category: "clicks" };
+      return { label: "NOTIFICATION EVENT", iconType: "bell", category: "clicks" };
     }
     if (key.includes("app_open")) {
-      return { bg: "#6366F1", border: "#4F46E5", text: "#FFFFFF", label: "APP LAUNCH", iconType: "app", category: "clicks" };
+      return { label: "APP LAUNCH", iconType: "app", category: "clicks" };
     }
     if (key.includes("toggle") || key.includes("change")) {
-      return { bg: "#14B8A6", border: "#0D9488", text: "#FFFFFF", label: "SETTING CHANGED", iconType: "settings", category: "clicks" };
+      return { label: "SETTING CHANGED", iconType: "settings", category: "clicks" };
     }
     return {
-      bg: "#334155",
-      border: "#475569",
-      text: "#E2E8F0",
       label: (key || "ACTION").toUpperCase().replace(/_/g, " "),
       iconType: "action",
       category: "clicks"
@@ -285,7 +295,7 @@ export default function AdminAnalyticsDashboard() {
     switch (iconType) {
       case "wallpaper": return <FiImage size={13} />;
       case "download": return <FiDownload size={13} />;
-      case "download_fail": return <FiXCircle size={13} />;
+      case "download_fail": return <FiXCircle size={13} color="#FB7185" />;
       case "preview": return <FiPlay size={13} />;
       case "trash": return <FiTrash2 size={13} />;
       case "auth": return <FiKey size={13} />;
@@ -350,34 +360,26 @@ export default function AdminAnalyticsDashboard() {
     return list;
   }, [selectedSession, timelineFilter, timelineSearch, timelineSortOrder]);
 
-  // Helper to extract clean initials and color
+  // Clean initials and subtle frosted avatar
   const getUserAvatarInfo = (session) => {
     const name = session.userName || session.email?.split("@")[0] || "Guest";
     const initial = name.charAt(0).toUpperCase();
-    const colors = [
-      "linear-gradient(135deg, #7C3AED, #EC4899)",
-      "linear-gradient(135deg, #2563EB, #06B6D4)",
-      "linear-gradient(135deg, #059669, #10B981)",
-      "linear-gradient(135deg, #D97706, #F59E0B)",
-      "linear-gradient(135deg, #DC2626, #EF4444)"
-    ];
-    const colorIndex = (name.charCodeAt(0) || 0) % colors.length;
-    return { name, initial, gradient: colors[colorIndex], isAuth: !!session.userId };
+    return { name, initial, isAuth: !!session.userId };
   };
 
   // ──────────────────────────────────────────────────────────
-  // 1. Password Protection Gate
+  // 1. Password Protection Gate (Glassmorphic)
   // ──────────────────────────────────────────────────────────
   if (!isAuthenticated) {
     return (
       <div style={styles.loginContainer}>
-        <div style={styles.loginCard}>
+        <div style={styles.loginCard} className="glass-panel">
           <div style={styles.lockIconCircle}>
-            <FiLock size={32} color="#D4AF37" />
+            <FiLock size={28} color="#818CF8" />
           </div>
-          <h1 style={styles.loginTitle}>VividWake Mission Control</h1>
+          <h1 style={styles.loginTitle}>VividWake Console</h1>
           <p style={styles.loginSubtitle}>
-            Restricted administrative telemetry dashboard. Enter master password to access live session journeys.
+            Administrative telemetry dashboard. Enter master password to access session analytics.
           </p>
 
           <form onSubmit={handleLogin} style={{ width: "100%" }}>
@@ -391,7 +393,7 @@ export default function AdminAnalyticsDashboard() {
             />
             {authError && <div style={styles.loginError}>{authError}</div>}
             <button type="submit" style={styles.loginButton}>
-              Unlock Analytics Dashboard
+              Unlock Dashboard
             </button>
           </form>
         </div>
@@ -400,7 +402,7 @@ export default function AdminAnalyticsDashboard() {
   }
 
   // ──────────────────────────────────────────────────────────
-  // 2. Main Admin Dashboard View
+  // 2. Main Admin Dashboard View (Glassmorphism & Light Accents)
   // ──────────────────────────────────────────────────────────
   const metrics = overview?.metrics || {};
 
@@ -410,94 +412,78 @@ export default function AdminAnalyticsDashboard() {
       <header style={styles.topHeader}>
         <div style={styles.brandRow}>
           <div style={styles.brandLogoCircle}>
-            <FiActivity size={22} color="#0A0812" />
+            <FiActivity size={20} color="#FFFFFF" />
           </div>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <h1 style={styles.headerTitle}>VividWake Analytics</h1>
               <span style={styles.versionPill}>v2.0 APM</span>
             </div>
-            <span style={styles.headerSubtitle}>Real-time Native Telemetry &amp; User Flow Explorer</span>
+            <span style={styles.headerSubtitle}>Real-time telemetry and user journey monitoring</span>
           </div>
         </div>
 
         <div style={styles.headerActions}>
-          <div
-            onClick={() => setAutoRefresh(!autoRefresh)}
-            style={{
-              ...styles.liveIndicator,
-              backgroundColor: autoRefresh ? "rgba(34, 197, 94, 0.12)" : "rgba(239, 68, 68, 0.12)",
-              border: `1px solid ${autoRefresh ? "rgba(34, 197, 94, 0.3)" : "rgba(239, 68, 68, 0.3)"}`,
-              cursor: "pointer"
-            }}
-            title="Click to toggle auto-refresh"
-          >
-            <span style={{ ...styles.liveDot, backgroundColor: autoRefresh ? "#22C55E" : "#EF4444" }} />
-            <span style={{ fontSize: "12px", color: autoRefresh ? "#4ADE80" : "#F87171", fontWeight: "600" }}>
-              {autoRefresh ? "Live Sync (12s)" : "Paused"}
-            </span>
-          </div>
-
           <button
             onClick={() => fetchAnalytics(password, page, filterType, selectedDate, searchQuery, sortBy)}
             style={styles.btnAction}
-            title="Refresh Data Now"
+            title="Refresh Data"
           >
-            <FiRefreshCw size={14} className={loading ? "spin" : ""} />
-            <span>Refresh</span>
+            <FiRefreshCw size={13} className={loading ? "spin-anim" : ""} />
+            <span>{loading ? "Refreshing..." : "Refresh"}</span>
           </button>
 
           <button onClick={handleLogout} style={styles.btnLogout} title="Lock Dashboard">
-            <FiLogOut size={14} />
+            <FiLogOut size={13} />
             <span>Lock</span>
           </button>
         </div>
       </header>
 
-      {/* KPI Summary Cards Grid */}
+      {/* KPI Summary Cards Grid (Minimal Glassmorphic) */}
       <section style={styles.kpiGrid}>
-        <div style={{ ...styles.kpiCard, borderTop: "3px solid #D4AF37" }}>
-          <div style={styles.kpiIconWrap}><FiSmartphone color="#D4AF37" size={20} /></div>
+        <div style={styles.kpiCard} className="glass-panel">
+          <div style={styles.kpiIconWrap}><FiSmartphone color="#818CF8" size={18} /></div>
           <div>
             <div style={styles.kpiValue}>{overview?.totalSessions || 0}</div>
             <div style={styles.kpiLabel}>Total Sessions</div>
           </div>
         </div>
 
-        <div style={{ ...styles.kpiCard, borderTop: "3px solid #38BDF8" }}>
-          <div style={styles.kpiIconWrap}><FiUsers color="#38BDF8" size={20} /></div>
+        <div style={styles.kpiCard} className="glass-panel">
+          <div style={styles.kpiIconWrap}><FiUsers color="#818CF8" size={18} /></div>
           <div>
             <div style={styles.kpiValue}>{overview?.authenticatedUsersCount || 0} / {overview?.uniqueDevicesCount || 0}</div>
             <div style={styles.kpiLabel}>Auth Users / Devices</div>
           </div>
         </div>
 
-        <div style={{ ...styles.kpiCard, borderTop: "3px solid #A855F7" }}>
-          <div style={styles.kpiIconWrap}><FiEye color="#A855F7" size={20} /></div>
+        <div style={styles.kpiCard} className="glass-panel">
+          <div style={styles.kpiIconWrap}><FiEye color="#818CF8" size={18} /></div>
           <div>
             <div style={styles.kpiValue}>{metrics.totalPreviews || 0}</div>
             <div style={styles.kpiLabel}>Previews Streamed</div>
           </div>
         </div>
 
-        <div style={{ ...styles.kpiCard, borderTop: "3px solid #22C55E" }}>
-          <div style={styles.kpiIconWrap}><FiDownload color="#22C55E" size={20} /></div>
+        <div style={styles.kpiCard} className="glass-panel">
+          <div style={styles.kpiIconWrap}><FiDownload color="#34D399" size={18} /></div>
           <div>
             <div style={styles.kpiValue}>{metrics.totalDownloadsCompleted || 0}</div>
             <div style={styles.kpiLabel}>Downloads Completed</div>
           </div>
         </div>
 
-        <div style={{ ...styles.kpiCard, borderTop: "3px solid #EAB308" }}>
-          <div style={styles.kpiIconWrap}><FiCheckCircle color="#EAB308" size={20} /></div>
+        <div style={styles.kpiCard} className="glass-panel">
+          <div style={styles.kpiIconWrap}><FiCheckCircle color="#34D399" size={18} /></div>
           <div>
             <div style={styles.kpiValue}>{metrics.totalAppliedToLockScreen || 0}</div>
             <div style={styles.kpiLabel}>Applied to Lock Screen</div>
           </div>
         </div>
 
-        <div style={{ ...styles.kpiCard, borderTop: "3px solid #EF4444" }}>
-          <div style={styles.kpiIconWrap}><FiTrash2 color="#EF4444" size={20} /></div>
+        <div style={styles.kpiCard} className="glass-panel">
+          <div style={styles.kpiIconWrap}><FiTrash2 color="#94A3B8" size={18} /></div>
           <div>
             <div style={styles.kpiValue}>{metrics.totalDeletedStorage || 0}</div>
             <div style={styles.kpiLabel}>Storage Cleanups</div>
@@ -506,7 +492,7 @@ export default function AdminAnalyticsDashboard() {
       </section>
 
       {/* Global Filter & Search Bar */}
-      <section style={styles.filterSection}>
+      <section style={styles.filterSection} className="glass-panel">
         {/* Date Selector Row */}
         <div style={styles.dateSelectorRow}>
           <span style={styles.filterSectionLabel}>Date Range:</span>
@@ -515,8 +501,9 @@ export default function AdminAnalyticsDashboard() {
               onClick={() => { setSelectedDate(""); setPage(1); }}
               style={{
                 ...styles.pillBtn,
-                backgroundColor: selectedDate === "" ? "#D4AF37" : "#1A142E",
-                color: selectedDate === "" ? "#0A0812" : "#9D8EB9"
+                backgroundColor: selectedDate === "" ? "rgba(99, 102, 241, 0.2)" : "rgba(255, 255, 255, 0.03)",
+                borderColor: selectedDate === "" ? "#6366F1" : "rgba(255, 255, 255, 0.08)",
+                color: selectedDate === "" ? "#FFFFFF" : "#94A3B8"
               }}
             >
               All Time
@@ -527,13 +514,14 @@ export default function AdminAnalyticsDashboard() {
                 onClick={() => { setSelectedDate(day.ymd); setPage(1); }}
                 style={{
                   ...styles.pillBtn,
-                  backgroundColor: selectedDate === day.ymd ? "#D4AF37" : "#1A142E",
-                  color: selectedDate === day.ymd ? "#0A0812" : "#9D8EB9",
-                  fontWeight: selectedDate === day.ymd ? "700" : "500"
+                  backgroundColor: selectedDate === day.ymd ? "rgba(99, 102, 241, 0.2)" : "rgba(255, 255, 255, 0.03)",
+                  borderColor: selectedDate === day.ymd ? "#6366F1" : "rgba(255, 255, 255, 0.08)",
+                  color: selectedDate === day.ymd ? "#FFFFFF" : "#94A3B8",
+                  fontWeight: selectedDate === day.ymd ? "600" : "400"
                 }}
               >
                 <span>{day.dayName}</span>
-                <span style={{ fontSize: "11px", opacity: 0.85 }}>{day.monthName} {day.dayNum}</span>
+                <span style={{ fontSize: "11px", opacity: 0.75 }}>{day.monthName} {day.dayNum}</span>
               </button>
             ))}
           </div>
@@ -541,12 +529,12 @@ export default function AdminAnalyticsDashboard() {
 
         {/* Search & Sort Controls Row */}
         <div style={styles.searchAndSortRow}>
-          {/* Real-time Search Input */}
+          {/* Search Input */}
           <form onSubmit={handleSearchSubmit} style={styles.searchForm}>
-            <FiSearch size={16} color="#9D8EB9" style={{ marginLeft: "12px" }} />
+            <FiSearch size={15} color="#94A3B8" style={{ marginLeft: "12px" }} />
             <input
               type="text"
-              placeholder="Search by User Name, Email, Device, Session ID..."
+              placeholder="Search user, device, session ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={styles.searchInput}
@@ -561,90 +549,94 @@ export default function AdminAnalyticsDashboard() {
             </button>
           </form>
 
-          {/* User Type Tabs with Vector Icons */}
+          {/* User Type Tabs */}
           <div style={styles.userFilterRow}>
             <button
               onClick={() => { setFilterType("all"); setPage(1); }}
               style={{
                 ...styles.typeBtn,
-                backgroundColor: filterType === "all" ? "#7C3AED" : "#1A142E",
-                color: "#FFFFFF"
+                backgroundColor: filterType === "all" ? "rgba(99, 102, 241, 0.2)" : "rgba(255, 255, 255, 0.03)",
+                borderColor: filterType === "all" ? "#6366F1" : "rgba(255, 255, 255, 0.08)",
+                color: filterType === "all" ? "#FFFFFF" : "#94A3B8"
               }}
             >
-              <FiUsers size={13} style={{ marginRight: "6px" }} />
-              <span>All Visitors</span>
+              <FiUsers size={12} style={{ marginRight: "6px" }} />
+              <span>All</span>
             </button>
             <button
               onClick={() => { setFilterType("auth"); setPage(1); }}
               style={{
                 ...styles.typeBtn,
-                backgroundColor: filterType === "auth" ? "#7C3AED" : "#1A142E",
-                color: "#FFFFFF"
+                backgroundColor: filterType === "auth" ? "rgba(99, 102, 241, 0.2)" : "rgba(255, 255, 255, 0.03)",
+                borderColor: filterType === "auth" ? "#6366F1" : "rgba(255, 255, 255, 0.08)",
+                color: filterType === "auth" ? "#FFFFFF" : "#94A3B8"
               }}
             >
-              <FiUser size={13} style={{ marginRight: "6px" }} />
+              <FiUser size={12} style={{ marginRight: "6px" }} />
               <span>Signed In</span>
             </button>
             <button
               onClick={() => { setFilterType("anon"); setPage(1); }}
               style={{
                 ...styles.typeBtn,
-                backgroundColor: filterType === "anon" ? "#7C3AED" : "#1A142E",
-                color: "#FFFFFF"
+                backgroundColor: filterType === "anon" ? "rgba(99, 102, 241, 0.2)" : "rgba(255, 255, 255, 0.03)",
+                borderColor: filterType === "anon" ? "#6366F1" : "rgba(255, 255, 255, 0.08)",
+                color: filterType === "anon" ? "#FFFFFF" : "#94A3B8"
               }}
             >
-              <FiSmartphone size={13} style={{ marginRight: "6px" }} />
+              <FiSmartphone size={12} style={{ marginRight: "6px" }} />
               <span>Anonymous</span>
             </button>
             <button
               onClick={() => { setFilterType("errors"); setPage(1); }}
               style={{
                 ...styles.typeBtn,
-                backgroundColor: filterType === "errors" ? "#EF4444" : "#1A142E",
-                color: "#FFFFFF"
+                backgroundColor: filterType === "errors" ? "rgba(244, 63, 94, 0.2)" : "rgba(255, 255, 255, 0.03)",
+                borderColor: filterType === "errors" ? "#F43F5E" : "rgba(255, 255, 255, 0.08)",
+                color: filterType === "errors" ? "#FB7185" : "#94A3B8"
               }}
             >
-              <FiAlertTriangle size={13} style={{ marginRight: "6px" }} />
+              <FiAlertTriangle size={12} style={{ marginRight: "6px" }} />
               <span>Has Errors</span>
             </button>
           </div>
 
           {/* Sort By Dropdown */}
           <div style={styles.sortDropdownWrap}>
-            <FiSliders size={14} color="#9D8EB9" />
+            <FiSliders size={13} color="#94A3B8" />
             <select
               value={sortBy}
               onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
               style={styles.sortSelect}
             >
-              <option value="recent">Sort: Most Recent</option>
-              <option value="oldest">Sort: Oldest First</option>
-              <option value="actions">Sort: Most Actions / Clicks</option>
-              <option value="duration">Sort: Longest Session</option>
-              <option value="errors">Sort: Most Errors First</option>
+              <option value="recent">Recent First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="actions">Most Actions</option>
+              <option value="duration">Longest Dwell</option>
+              <option value="errors">Most Errors</option>
             </select>
           </div>
         </div>
       </section>
 
-      {/* Main Two-Column Explorer Layout (Full-Height Flex Grid) */}
+      {/* Main Two-Column Layout (Fixed Height, Steady Internal Scrolling) */}
       <div style={styles.mainGrid}>
         {/* LEFT COLUMN: Sessions List */}
-        <div style={styles.sessionsCol}>
+        <div style={styles.sessionsCol} className="glass-panel">
           <div style={styles.colHeader}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <h3 style={styles.colTitle}>Sessions</h3>
               <span style={styles.countBadge}>{totalRecords}</span>
             </div>
-            <span style={{ fontSize: "12px", color: "#9D8EB9" }}>Page {page} of {totalPages}</span>
+            <span style={{ fontSize: "12px", color: "#64748B" }}>Page {page} of {totalPages}</span>
           </div>
 
           <div style={styles.sessionListScroll}>
             {sortedSessions.length === 0 ? (
               <div style={styles.emptyCard}>
-                <FiActivity size={36} color="#6E6188" />
-                <p style={{ marginTop: "12px", fontWeight: "600" }}>No sessions found</p>
-                <span style={{ fontSize: "12px", color: "#9D8EB9" }}>Try adjusting your search query or date filters</span>
+                <FiActivity size={32} color="#475569" />
+                <p style={{ marginTop: "12px", fontWeight: "600", color: "#94A3B8" }}>No sessions found</p>
+                <span style={{ fontSize: "12px", color: "#64748B" }}>Adjust search query or date filters</span>
               </div>
             ) : (
               sortedSessions.map((sess) => {
@@ -664,8 +656,9 @@ export default function AdminAnalyticsDashboard() {
                     onClick={() => setSelectedSession(sess)}
                     style={{
                       ...styles.sessionCard,
-                      borderLeft: isSelected ? "4px solid #D4AF37" : "4px solid transparent",
-                      backgroundColor: isSelected ? "#22193D" : "#171228"
+                      borderLeft: isSelected ? "3px solid #818CF8" : "3px solid transparent",
+                      backgroundColor: isSelected ? "rgba(99, 102, 241, 0.12)" : "rgba(255, 255, 255, 0.02)",
+                      borderColor: isSelected ? "rgba(99, 102, 241, 0.3)" : "rgba(255, 255, 255, 0.05)"
                     }}
                   >
                     <div style={styles.sessionCardHeader}>
@@ -682,7 +675,6 @@ export default function AdminAnalyticsDashboard() {
                         <div
                           style={{
                             ...styles.avatarFallback,
-                            background: avatar.gradient,
                             display: sess.userPhoto ? "none" : "flex"
                           }}
                         >
@@ -698,13 +690,13 @@ export default function AdminAnalyticsDashboard() {
                           </span>
                           {sess.userId && (
                             <span style={styles.googleVerifiedBadge}>
-                              <FiCheck size={10} style={{ marginRight: "2px" }} />
+                              <FiCheck size={9} style={{ marginRight: "2px" }} />
                               G-Auth
                             </span>
                           )}
                           {errorCount > 0 && (
                             <span style={styles.errorIndicatorBadge}>
-                              <FiAlertTriangle size={10} style={{ marginRight: "2px" }} />
+                              <FiAlertTriangle size={9} style={{ marginRight: "2px" }} />
                               {errorCount}
                             </span>
                           )}
@@ -719,16 +711,16 @@ export default function AdminAnalyticsDashboard() {
                       <span style={styles.sessionTimeTag}>{formattedTime}</span>
                     </div>
 
-                    {/* Metadata Badges with SVG Icons */}
+                    {/* Metadata Badges */}
                     <div style={styles.sessionMetaBadges}>
                       <span style={styles.metaChip}>
-                        <FiSmartphone size={11} /> {sess.deviceModel || "Android"}
+                        <FiSmartphone size={10} /> {sess.deviceModel || "Android"}
                       </span>
                       <span style={styles.metaChip}>
-                        <FiClock size={11} /> {formatDuration(sess.totalDuration)}
+                        <FiClock size={10} /> {formatDuration(sess.totalDuration)}
                       </span>
-                      <span style={{ ...styles.metaChip, backgroundColor: "rgba(168, 85, 247, 0.15)", color: "#C084FC" }}>
-                        <FiZap size={11} /> {eventCount} {eventCount === 1 ? "action" : "actions"}
+                      <span style={{ ...styles.metaChip, color: "#A5B4FC" }}>
+                        <FiZap size={10} /> {eventCount} {eventCount === 1 ? "action" : "actions"}
                       </span>
                     </div>
                   </div>
@@ -745,30 +737,30 @@ export default function AdminAnalyticsDashboard() {
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 style={styles.pageBtn}
               >
-                <FiChevronLeft /> Prev
+                <FiChevronLeft size={12} /> Prev
               </button>
-              <span style={{ fontSize: "13px", color: "#E9D5FF" }}>{page} / {totalPages}</span>
+              <span style={{ fontSize: "12px", color: "#94A3B8" }}>{page} / {totalPages}</span>
               <button
                 disabled={page >= totalPages}
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 style={styles.pageBtn}
               >
-                Next <FiChevronRight />
+                Next <FiChevronRight size={12} />
               </button>
             </div>
           )}
         </div>
 
         {/* RIGHT COLUMN: Journey Timeline Flow */}
-        <div style={styles.timelineCol}>
+        <div style={styles.timelineCol} className="glass-panel">
           {!selectedSession ? (
             <div style={styles.emptyCard}>
-              <FiLayers size={44} color="#6E6188" />
-              <p style={{ marginTop: "14px", fontSize: "16px", fontWeight: "600", color: "#E2E8F0" }}>
+              <FiLayers size={36} color="#475569" />
+              <p style={{ marginTop: "12px", fontSize: "15px", fontWeight: "600", color: "#E2E8F0" }}>
                 Select a session on the left to inspect its live journey
               </p>
-              <span style={{ fontSize: "13px", color: "#9D8EB9", marginTop: "4px" }}>
-                Every single click, execution duration in ms, and exception block will appear here
+              <span style={{ fontSize: "13px", color: "#64748B", marginTop: "4px" }}>
+                Every click, response latency, and exception details will appear here
               </span>
             </div>
           ) : (
@@ -788,7 +780,6 @@ export default function AdminAnalyticsDashboard() {
                     <div
                       style={{
                         ...styles.bannerAvatarFallback,
-                        background: getUserAvatarInfo(selectedSession).gradient,
                         display: selectedSession.userPhoto ? "none" : "flex"
                       }}
                     >
@@ -803,13 +794,13 @@ export default function AdminAnalyticsDashboard() {
                       </h2>
                       {selectedSession.userId ? (
                         <span style={styles.authStatusBadge}>
-                          <FiCheckCircle size={12} style={{ marginRight: "4px" }} />
-                          Google Account Verified
+                          <FiCheckCircle size={11} style={{ marginRight: "4px" }} />
+                          Google Account
                         </span>
                       ) : (
                         <span style={styles.guestStatusBadge}>
-                          <FiSmartphone size={12} style={{ marginRight: "4px" }} />
-                          Anonymous Guest
+                          <FiSmartphone size={11} style={{ marginRight: "4px" }} />
+                          Guest
                         </span>
                       )}
                     </div>
@@ -833,8 +824,8 @@ export default function AdminAnalyticsDashboard() {
                     style={styles.btnCopyId}
                     title="Copy Session ID"
                   >
-                    <FiCopy size={13} />
-                    <span>{copiedId ? "Copied!" : "Copy Session ID"}</span>
+                    <FiCopy size={12} />
+                    <span>{copiedId ? "Copied" : "Copy ID"}</span>
                   </button>
                 </div>
 
@@ -842,29 +833,29 @@ export default function AdminAnalyticsDashboard() {
                 <div style={styles.sessionKpiStrip}>
                   <div style={styles.miniKpiBox}>
                     <span style={styles.miniKpiValue}>{sessionStats.total}</span>
-                    <span style={styles.miniKpiLabel}>Actions / Clicks</span>
+                    <span style={styles.miniKpiLabel}>Actions</span>
                   </div>
                   <div style={styles.miniKpiBox}>
-                    <span style={{ ...styles.miniKpiValue, color: "#4ADE80" }}>{sessionStats.success}</span>
-                    <span style={styles.miniKpiLabel}>Successful</span>
+                    <span style={{ ...styles.miniKpiValue, color: "#34D399" }}>{sessionStats.success}</span>
+                    <span style={styles.miniKpiLabel}>Success</span>
                   </div>
                   <div style={styles.miniKpiBox}>
-                    <span style={{ ...styles.miniKpiValue, color: sessionStats.failed > 0 ? "#F87171" : "#9D8EB9" }}>
+                    <span style={{ ...styles.miniKpiValue, color: sessionStats.failed > 0 ? "#FB7185" : "#64748B" }}>
                       {sessionStats.failed}
                     </span>
-                    <span style={styles.miniKpiLabel}>Failures / Exceptions</span>
+                    <span style={styles.miniKpiLabel}>Exceptions</span>
                   </div>
                   <div style={styles.miniKpiBox}>
-                    <span style={{ ...styles.miniKpiValue, color: "#FBBF24" }}>
-                      {sessionStats.avgLatency > 0 ? `${sessionStats.avgLatency}ms` : "Fast (<5ms)"}
+                    <span style={{ ...styles.miniKpiValue, color: "#E2E8F0" }}>
+                      {sessionStats.avgLatency > 0 ? `${sessionStats.avgLatency}ms` : "< 5ms"}
                     </span>
-                    <span style={styles.miniKpiLabel}>Avg Action Latency</span>
+                    <span style={styles.miniKpiLabel}>Avg Latency</span>
                   </div>
                   <div style={styles.miniKpiBox}>
-                    <span style={{ ...styles.miniKpiValue, color: "#C084FC" }}>
+                    <span style={{ ...styles.miniKpiValue, color: "#A5B4FC" }}>
                       {formatDuration(selectedSession.totalDuration)}
                     </span>
-                    <span style={styles.miniKpiLabel}>Session Dwell</span>
+                    <span style={styles.miniKpiLabel}>Dwell Time</span>
                   </div>
                 </div>
               </div>
@@ -876,55 +867,60 @@ export default function AdminAnalyticsDashboard() {
                     onClick={() => setTimelineFilter("all")}
                     style={{
                       ...styles.timelineTabBtn,
-                      backgroundColor: timelineFilter === "all" ? "#7C3AED" : "#1A142E",
-                      color: "#FFFFFF"
+                      backgroundColor: timelineFilter === "all" ? "rgba(99, 102, 241, 0.2)" : "transparent",
+                      borderColor: timelineFilter === "all" ? "#6366F1" : "rgba(255, 255, 255, 0.08)",
+                      color: timelineFilter === "all" ? "#FFFFFF" : "#94A3B8"
                     }}
                   >
-                    <FiActivity size={12} style={{ marginRight: "4px" }} />
-                    <span>All Actions ({sessionStats.total})</span>
+                    <FiActivity size={11} style={{ marginRight: "4px" }} />
+                    <span>All ({sessionStats.total})</span>
                   </button>
                   <button
                     onClick={() => setTimelineFilter("wallpapers")}
                     style={{
                       ...styles.timelineTabBtn,
-                      backgroundColor: timelineFilter === "wallpapers" ? "#7C3AED" : "#1A142E",
-                      color: "#FFFFFF"
+                      backgroundColor: timelineFilter === "wallpapers" ? "rgba(99, 102, 241, 0.2)" : "transparent",
+                      borderColor: timelineFilter === "wallpapers" ? "#6366F1" : "rgba(255, 255, 255, 0.08)",
+                      color: timelineFilter === "wallpapers" ? "#FFFFFF" : "#94A3B8"
                     }}
                   >
-                    <FiImage size={12} style={{ marginRight: "4px" }} />
+                    <FiImage size={11} style={{ marginRight: "4px" }} />
                     <span>Wallpapers</span>
                   </button>
                   <button
                     onClick={() => setTimelineFilter("clicks")}
                     style={{
                       ...styles.timelineTabBtn,
-                      backgroundColor: timelineFilter === "clicks" ? "#7C3AED" : "#1A142E",
-                      color: "#FFFFFF"
+                      backgroundColor: timelineFilter === "clicks" ? "rgba(99, 102, 241, 0.2)" : "transparent",
+                      borderColor: timelineFilter === "clicks" ? "#6366F1" : "rgba(255, 255, 255, 0.08)",
+                      color: timelineFilter === "clicks" ? "#FFFFFF" : "#94A3B8"
                     }}
                   >
-                    <FiMousePointer size={12} style={{ marginRight: "4px" }} />
-                    <span>UI &amp; Clicks</span>
+                    <FiMousePointer size={11} style={{ marginRight: "4px" }} />
+                    <span>UI Clicks</span>
                   </button>
                   <button
                     onClick={() => setTimelineFilter("auth")}
                     style={{
                       ...styles.timelineTabBtn,
-                      backgroundColor: timelineFilter === "auth" ? "#7C3AED" : "#1A142E",
-                      color: "#FFFFFF"
+                      backgroundColor: timelineFilter === "auth" ? "rgba(99, 102, 241, 0.2)" : "transparent",
+                      borderColor: timelineFilter === "auth" ? "#6366F1" : "rgba(255, 255, 255, 0.08)",
+                      color: timelineFilter === "auth" ? "#FFFFFF" : "#94A3B8"
                     }}
                   >
-                    <FiKey size={12} style={{ marginRight: "4px" }} />
-                    <span>Auth &amp; Account</span>
+                    <FiKey size={11} style={{ marginRight: "4px" }} />
+                    <span>Auth</span>
                   </button>
                   <button
                     onClick={() => setTimelineFilter("errors")}
                     style={{
                       ...styles.timelineTabBtn,
-                      backgroundColor: timelineFilter === "errors" ? "#EF4444" : "#1A142E",
-                      color: "#FFFFFF"
+                      backgroundColor: timelineFilter === "errors" ? "rgba(244, 63, 94, 0.2)" : "transparent",
+                      borderColor: timelineFilter === "errors" ? "#F43F5E" : "rgba(255, 255, 255, 0.08)",
+                      color: timelineFilter === "errors" ? "#FB7185" : "#94A3B8"
                     }}
                   >
-                    <FiAlertCircle size={12} style={{ marginRight: "4px" }} />
+                    <FiAlertCircle size={11} style={{ marginRight: "4px" }} />
                     <span>Errors ({sessionStats.failed})</span>
                   </button>
                 </div>
@@ -932,10 +928,10 @@ export default function AdminAnalyticsDashboard() {
                 <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                   {/* Timeline Search */}
                   <div style={styles.timelineSearchWrap}>
-                    <FiSearch size={14} color="#9D8EB9" />
+                    <FiSearch size={13} color="#94A3B8" />
                     <input
                       type="text"
-                      placeholder="Filter session events..."
+                      placeholder="Filter actions..."
                       value={timelineSearch}
                       onChange={(e) => setTimelineSearch(e.target.value)}
                       style={styles.timelineSearchInput}
@@ -953,8 +949,8 @@ export default function AdminAnalyticsDashboard() {
                     style={styles.btnSortOrder}
                     title="Toggle timeline order"
                   >
-                    <FiSliders size={12} style={{ marginRight: "4px" }} />
-                    <span>{timelineSortOrder === "asc" ? "Flow: 1 → End" : "Flow: Latest First"}</span>
+                    <FiSliders size={11} style={{ marginRight: "4px" }} />
+                    <span>{timelineSortOrder === "asc" ? "1 → End" : "Latest First"}</span>
                   </button>
                 </div>
               </div>
@@ -963,8 +959,8 @@ export default function AdminAnalyticsDashboard() {
               <div style={styles.eventsScrollContainer}>
                 {filteredEvents.length === 0 ? (
                   <div style={styles.emptyCard}>
-                    <FiActivity size={32} color="#6E6188" />
-                    <p style={{ color: "#9D8EB9", marginTop: "10px" }}>No actions match this filter in this session.</p>
+                    <FiActivity size={28} color="#475569" />
+                    <p style={{ color: "#94A3B8", marginTop: "10px", fontSize: "13px" }}>No matching actions in this session.</p>
                   </div>
                 ) : (
                   filteredEvents.map((ev, index) => {
@@ -977,27 +973,34 @@ export default function AdminAnalyticsDashboard() {
                       second: "2-digit"
                     });
 
+                    const isFailed = ev.status === "FAILED";
+
                     return (
                       <div key={index} style={styles.eventRowCard}>
-                        {/* Left timeline indicator */}
+                        {/* Left step indicator */}
                         <div style={styles.eventLeftCol}>
                           <span style={styles.stepBadge}>#{index + 1}</span>
                           <span style={styles.eventTimeText}>{formattedTime}</span>
                           <div style={styles.timelineVerticalLine} />
-                          <div style={{ ...styles.timelineDot, backgroundColor: badge.bg }} />
+                          <div
+                            style={{
+                              ...styles.timelineDot,
+                              backgroundColor: isFailed ? "#FB7185" : "#818CF8"
+                            }}
+                          />
                         </div>
 
-                        {/* Event Details Card */}
+                        {/* Event Details Card (Glassmorphic) */}
                         <div
                           style={{
                             ...styles.eventCardBody,
-                            borderLeft: `4px solid ${badge.bg}`,
-                            backgroundColor: ev.status === "FAILED" ? "#2B161E" : "#1B1530"
+                            backgroundColor: isFailed ? "rgba(244, 63, 94, 0.08)" : "rgba(255, 255, 255, 0.025)",
+                            borderColor: isFailed ? "rgba(244, 63, 94, 0.3)" : "rgba(255, 255, 255, 0.07)"
                           }}
                         >
                           <div style={styles.eventCardTop}>
                             <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                              <span style={{ ...styles.categoryBadge, backgroundColor: badge.bg, color: badge.text }}>
+                              <span style={styles.categoryBadge}>
                                 {renderBadgeIcon(badge.iconType)}
                                 <span style={{ marginLeft: "5px" }}>{badge.label}</span>
                               </span>
@@ -1006,20 +1009,20 @@ export default function AdminAnalyticsDashboard() {
                                 <span
                                   style={{
                                     ...styles.statusChip,
-                                    backgroundColor: ev.status === "SUCCESS" ? "rgba(34, 197, 94, 0.15)" : "rgba(239, 68, 68, 0.2)",
-                                    color: ev.status === "SUCCESS" ? "#4ADE80" : "#F87171",
-                                    border: `1px solid ${ev.status === "SUCCESS" ? "rgba(34, 197, 94, 0.4)" : "rgba(239, 68, 68, 0.4)"}`
+                                    backgroundColor: isFailed ? "rgba(244, 63, 94, 0.15)" : "rgba(16, 185, 129, 0.15)",
+                                    color: isFailed ? "#FB7185" : "#34D399",
+                                    borderColor: isFailed ? "rgba(244, 63, 94, 0.3)" : "rgba(16, 185, 129, 0.3)"
                                   }}
                                 >
-                                  {ev.status === "SUCCESS" ? (
-                                    <>
-                                      <FiCheck size={10} style={{ marginRight: "3px" }} />
-                                      <span>SUCCESS</span>
-                                    </>
-                                  ) : (
+                                  {isFailed ? (
                                     <>
                                       <FiX size={10} style={{ marginRight: "3px" }} />
                                       <span>FAILED</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <FiCheck size={10} style={{ marginRight: "3px" }} />
+                                      <span>SUCCESS</span>
                                     </>
                                   )}
                                 </span>
@@ -1045,7 +1048,7 @@ export default function AdminAnalyticsDashboard() {
                               style={styles.btnExpandEvent}
                               title="Toggle payload details"
                             >
-                              {isExpanded ? <FiChevronUp size={14} /> : <FiChevronDown size={14} />}
+                              {isExpanded ? <FiChevronUp size={13} /> : <FiChevronDown size={13} />}
                               <span>{isExpanded ? "Collapse" : "Details"}</span>
                             </button>
                           </div>
@@ -1053,19 +1056,19 @@ export default function AdminAnalyticsDashboard() {
                           {/* Target Tag */}
                           {ev.target && (
                             <div style={styles.targetRow}>
-                              <FiImage size={12} color="#86789D" />
+                              <FiImage size={11} color="#64748B" />
                               <span style={styles.targetLabel}>Target:</span>
                               <span style={styles.targetValue}>{ev.target}</span>
                             </div>
                           )}
 
-                          {/* Error Banner if Try/Catch failed */}
+                          {/* Error Alert Box */}
                           {ev.errorMessage && (
                             <div style={styles.errorAlertBox}>
-                              <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
-                                <FiAlertTriangle size={15} color="#EF4444" />
-                                <strong style={{ color: "#F87171", fontSize: "13px" }}>
-                                  {ev.errorType || "Application Exception"}
+                              <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "3px" }}>
+                                <FiAlertTriangle size={14} color="#FB7185" />
+                                <strong style={{ color: "#FB7185", fontSize: "12px" }}>
+                                  {ev.errorType || "Exception"}
                                 </strong>
                               </div>
                               <span style={styles.errorMessageText}>{ev.errorMessage}</span>
@@ -1075,7 +1078,7 @@ export default function AdminAnalyticsDashboard() {
                           {/* Expandable Parameters / JSON Viewer */}
                           {isExpanded && (
                             <div style={styles.expandedDetailsWrap}>
-                              <span style={styles.jsonHeader}>Telemetry Parameters Payload:</span>
+                              <span style={styles.jsonHeader}>Payload Parameters:</span>
                               <pre style={styles.jsonPre}>
                                 {JSON.stringify(ev, null, 2)}
                               </pre>
@@ -1096,7 +1099,7 @@ export default function AdminAnalyticsDashboard() {
 }
 
 // ──────────────────────────────────────────────────────────
-// Modern Full-Height Dark Theme Styles (Zero White Space)
+// Refined Glassmorphic Stylesheet (Light, Clean, Zero Rainbow)
 // ──────────────────────────────────────────────────────────
 const styles = {
   loginContainer: {
@@ -1104,81 +1107,75 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#0A0812",
     padding: "20px"
   },
   loginCard: {
-    backgroundColor: "#171228",
-    border: "1px solid #2F244C",
     borderRadius: "16px",
     padding: "36px",
     width: "100%",
-    maxWidth: "420px",
+    maxWidth: "400px",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    textAlign: "center",
-    boxShadow: "0 20px 40px rgba(0,0,0,0.5)"
+    textAlign: "center"
   },
   lockIconCircle: {
-    width: "64px",
-    height: "64px",
+    width: "56px",
+    height: "56px",
     borderRadius: "50%",
-    backgroundColor: "rgba(212, 175, 55, 0.12)",
+    backgroundColor: "rgba(99, 102, 241, 0.12)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: "20px"
+    marginBottom: "18px"
   },
   loginTitle: {
-    color: "#D4AF37",
-    fontSize: "22px",
+    color: "#F8FAFC",
+    fontSize: "20px",
     fontWeight: "700",
     marginBottom: "8px"
   },
   loginSubtitle: {
-    color: "#9D8EB9",
+    color: "#94A3B8",
     fontSize: "13px",
     lineHeight: "1.5",
-    marginBottom: "24px"
+    marginBottom: "22px"
   },
   loginInput: {
     width: "100%",
-    padding: "12px 16px",
-    backgroundColor: "#0A0812",
-    border: "1px solid #3D3254",
-    borderRadius: "10px",
-    color: "#FFFFFF",
+    padding: "11px 14px",
+    backgroundColor: "rgba(255, 255, 255, 0.04)",
+    border: "1px solid rgba(255, 255, 255, 0.1)",
+    borderRadius: "8px",
+    color: "#F8FAFC",
     fontSize: "14px",
-    marginBottom: "16px",
+    marginBottom: "14px",
     outline: "none"
   },
   loginButton: {
     width: "100%",
-    padding: "12px",
-    backgroundColor: "#D4AF37",
-    color: "#0A0812",
-    fontWeight: "700",
-    fontSize: "14px",
+    padding: "11px",
+    backgroundColor: "#6366F1",
+    color: "#FFFFFF",
+    fontWeight: "600",
+    fontSize: "13px",
     border: "none",
-    borderRadius: "10px",
+    borderRadius: "8px",
     cursor: "pointer"
   },
   loginError: {
-    color: "#F87171",
-    fontSize: "13px",
-    marginBottom: "12px"
+    color: "#FB7185",
+    fontSize: "12px",
+    marginBottom: "10px"
   },
 
-  // Main Dashboard Full-Height Layout
+  // Main Dashboard
   dashboardContainer: {
     minHeight: "100vh",
     width: "100%",
-    backgroundColor: "#0A0812",
-    color: "#F3E8FF",
     display: "flex",
     flexDirection: "column",
-    padding: "16px 24px",
+    padding: "18px 24px",
     boxSizing: "border-box"
   },
   topHeader: {
@@ -1186,140 +1183,123 @@ const styles = {
     justifyContent: "space-between",
     alignItems: "center",
     paddingBottom: "16px",
-    borderBottom: "1px solid #231C38",
+    borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
     flexWrap: "wrap",
     gap: "12px"
   },
   brandRow: {
     display: "flex",
     alignItems: "center",
-    gap: "14px"
+    gap: "12px"
   },
   brandLogoCircle: {
-    width: "42px",
-    height: "42px",
-    borderRadius: "12px",
-    background: "linear-gradient(135deg, #D4AF37, #F59E0B)",
+    width: "38px",
+    height: "38px",
+    borderRadius: "10px",
+    background: "linear-gradient(135deg, #6366F1, #818CF8)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    boxShadow: "0 0 16px rgba(212, 175, 55, 0.3)"
+    boxShadow: "0 0 16px rgba(99, 102, 241, 0.3)"
   },
   headerTitle: {
-    fontSize: "20px",
-    fontWeight: "800",
-    color: "#FFFFFF",
-    letterSpacing: "-0.3px"
+    fontSize: "18px",
+    fontWeight: "700",
+    color: "#F8FAFC",
+    letterSpacing: "-0.2px"
   },
   versionPill: {
-    backgroundColor: "rgba(168, 85, 247, 0.2)",
-    color: "#C084FC",
-    border: "1px solid rgba(168, 85, 247, 0.4)",
-    fontSize: "11px",
-    fontWeight: "700",
-    padding: "2px 8px",
-    borderRadius: "12px"
+    backgroundColor: "rgba(99, 102, 241, 0.15)",
+    color: "#A5B4FC",
+    border: "1px solid rgba(99, 102, 241, 0.25)",
+    fontSize: "10px",
+    fontWeight: "600",
+    padding: "2px 6px",
+    borderRadius: "10px"
   },
   headerSubtitle: {
     fontSize: "12px",
-    color: "#9D8EB9"
+    color: "#94A3B8"
   },
   headerActions: {
     display: "flex",
     alignItems: "center",
-    gap: "10px"
-  },
-  liveIndicator: {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    padding: "6px 12px",
-    borderRadius: "20px"
-  },
-  liveDot: {
-    width: "8px",
-    height: "8px",
-    borderRadius: "50%"
+    gap: "8px"
   },
   btnAction: {
     display: "flex",
     alignItems: "center",
     gap: "6px",
-    backgroundColor: "#1A142E",
-    border: "1px solid #3D3254",
-    color: "#E2E8F0",
-    padding: "8px 14px",
-    borderRadius: "10px",
-    fontSize: "13px",
-    fontWeight: "600",
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    border: "1px solid rgba(255, 255, 255, 0.1)",
+    color: "#F8FAFC",
+    padding: "7px 12px",
+    borderRadius: "8px",
+    fontSize: "12px",
+    fontWeight: "500",
     cursor: "pointer"
   },
   btnLogout: {
     display: "flex",
     alignItems: "center",
     gap: "6px",
-    backgroundColor: "rgba(239, 68, 68, 0.12)",
-    border: "1px solid rgba(239, 68, 68, 0.3)",
-    color: "#F87171",
-    padding: "8px 14px",
-    borderRadius: "10px",
-    fontSize: "13px",
-    fontWeight: "600",
+    backgroundColor: "rgba(244, 63, 94, 0.1)",
+    border: "1px solid rgba(244, 63, 94, 0.2)",
+    color: "#FB7185",
+    padding: "7px 12px",
+    borderRadius: "8px",
+    fontSize: "12px",
+    fontWeight: "500",
     cursor: "pointer"
   },
 
   // KPI Grid
   kpiGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-    gap: "14px",
-    margin: "18px 0"
+    gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+    gap: "12px",
+    margin: "16px 0"
   },
   kpiCard: {
-    backgroundColor: "#151024",
-    border: "1px solid #261D3D",
-    borderRadius: "14px",
-    padding: "16px",
+    borderRadius: "12px",
+    padding: "14px 16px",
     display: "flex",
     alignItems: "center",
-    gap: "14px",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.2)"
+    gap: "12px"
   },
   kpiIconWrap: {
-    width: "42px",
-    height: "42px",
-    borderRadius: "10px",
-    backgroundColor: "rgba(255,255,255,0.04)",
+    width: "36px",
+    height: "36px",
+    borderRadius: "8px",
+    backgroundColor: "rgba(255, 255, 255, 0.04)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center"
   },
   kpiValue: {
-    fontSize: "20px",
-    fontWeight: "800",
-    color: "#FFFFFF"
+    fontSize: "18px",
+    fontWeight: "700",
+    color: "#F8FAFC"
   },
   kpiLabel: {
     fontSize: "11px",
-    color: "#9D8EB9",
+    color: "#94A3B8",
     marginTop: "2px"
   },
 
   // Filter Section
   filterSection: {
-    backgroundColor: "#151024",
-    border: "1px solid #261D3D",
-    borderRadius: "14px",
-    padding: "14px 18px",
-    marginBottom: "18px",
+    borderRadius: "12px",
+    padding: "12px 16px",
+    marginBottom: "16px",
     display: "flex",
     flexDirection: "column",
-    gap: "12px"
+    gap: "10px"
   },
   filterSectionLabel: {
     fontSize: "12px",
-    fontWeight: "600",
-    color: "#9D8EB9",
+    fontWeight: "500",
+    color: "#94A3B8",
     marginRight: "6px"
   },
   dateSelectorRow: {
@@ -1334,15 +1314,14 @@ const styles = {
     gap: "6px"
   },
   pillBtn: {
-    padding: "6px 12px",
-    borderRadius: "8px",
-    border: "1px solid #332650",
+    padding: "5px 10px",
+    borderRadius: "6px",
+    border: "1px solid",
     cursor: "pointer",
-    fontSize: "12px",
+    fontSize: "11px",
     display: "flex",
-    gap: "5px",
-    alignItems: "center",
-    transition: "all 0.15s ease"
+    gap: "4px",
+    alignItems: "center"
   },
 
   searchAndSortRow: {
@@ -1350,41 +1329,41 @@ const styles = {
     alignItems: "center",
     justifyContent: "space-between",
     flexWrap: "wrap",
-    gap: "12px"
+    gap: "10px"
   },
   searchForm: {
     display: "flex",
     alignItems: "center",
-    backgroundColor: "#0E0B18",
-    border: "1px solid #332650",
-    borderRadius: "10px",
-    flex: "1 1 320px",
-    minWidth: "260px"
+    backgroundColor: "rgba(255, 255, 255, 0.03)",
+    border: "1px solid rgba(255, 255, 255, 0.08)",
+    borderRadius: "8px",
+    flex: "1 1 280px",
+    minWidth: "240px"
   },
   searchInput: {
     flex: 1,
-    padding: "10px 12px",
+    padding: "8px 10px",
     backgroundColor: "transparent",
     border: "none",
-    color: "#FFFFFF",
-    fontSize: "13px",
+    color: "#F8FAFC",
+    fontSize: "12px",
     outline: "none"
   },
   clearSearchBtn: {
     backgroundColor: "transparent",
     border: "none",
-    color: "#9D8EB9",
+    color: "#94A3B8",
     cursor: "pointer",
     padding: "4px 8px"
   },
   searchSubmitBtn: {
-    backgroundColor: "#7C3AED",
+    backgroundColor: "#6366F1",
     border: "none",
     color: "#FFFFFF",
-    padding: "8px 14px",
-    margin: "4px",
+    padding: "6px 12px",
+    margin: "3px",
     borderRadius: "6px",
-    fontSize: "12px",
+    fontSize: "11px",
     fontWeight: "600",
     cursor: "pointer"
   },
@@ -1397,91 +1376,86 @@ const styles = {
   typeBtn: {
     display: "flex",
     alignItems: "center",
-    padding: "8px 14px",
-    borderRadius: "8px",
-    border: "1px solid #332650",
-    fontSize: "12px",
-    fontWeight: "600",
-    cursor: "pointer",
-    transition: "all 0.15s ease"
+    padding: "6px 12px",
+    borderRadius: "6px",
+    border: "1px solid",
+    fontSize: "11px",
+    fontWeight: "500",
+    cursor: "pointer"
   },
 
   sortDropdownWrap: {
     display: "flex",
     alignItems: "center",
     gap: "6px",
-    backgroundColor: "#0E0B18",
-    border: "1px solid #332650",
-    borderRadius: "8px",
-    padding: "4px 10px"
+    backgroundColor: "rgba(255, 255, 255, 0.03)",
+    border: "1px solid rgba(255, 255, 255, 0.08)",
+    borderRadius: "6px",
+    padding: "3px 8px"
   },
   sortSelect: {
     backgroundColor: "transparent",
     border: "none",
     color: "#E2E8F0",
-    fontSize: "12px",
-    fontWeight: "600",
+    fontSize: "11px",
+    fontWeight: "500",
     outline: "none",
     cursor: "pointer"
   },
 
-  // Main Responsive Grid (Filling Full Available Height)
+  // Main Grid Layout
   mainGrid: {
     display: "grid",
-    gridTemplateColumns: "380px 1fr",
-    gap: "18px",
+    gridTemplateColumns: "360px 1fr",
+    gap: "16px",
     flex: 1,
-    alignItems: "stretch",
-    minHeight: "650px",
-    marginBottom: "16px"
+    height: "calc(100vh - 310px)",
+    minHeight: "560px",
+    alignItems: "stretch"
   },
 
   // Left Column: Sessions List
   sessionsCol: {
-    backgroundColor: "#130E22",
-    border: "1px solid #231C38",
     borderRadius: "14px",
     display: "flex",
     flexDirection: "column",
     overflow: "hidden",
-    height: "calc(100vh - 280px)",
-    minHeight: "600px"
+    height: "100%"
   },
   colHeader: {
-    padding: "14px 16px",
-    borderBottom: "1px solid #231C38",
+    padding: "12px 16px",
+    borderBottom: "1px solid rgba(255, 255, 255, 0.07)",
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "#171228"
+    alignItems: "center"
   },
   colTitle: {
-    fontSize: "15px",
-    fontWeight: "700",
-    color: "#FFFFFF"
+    fontSize: "14px",
+    fontWeight: "600",
+    color: "#F8FAFC"
   },
   countBadge: {
-    backgroundColor: "rgba(212, 175, 55, 0.15)",
-    color: "#D4AF37",
-    padding: "2px 8px",
-    borderRadius: "12px",
-    fontSize: "11px",
-    fontWeight: "700"
+    backgroundColor: "rgba(99, 102, 241, 0.15)",
+    color: "#A5B4FC",
+    padding: "2px 6px",
+    borderRadius: "10px",
+    fontSize: "10px",
+    fontWeight: "600"
   },
   sessionListScroll: {
     flex: 1,
     overflowY: "auto",
-    padding: "12px",
+    padding: "10px",
     display: "flex",
     flexDirection: "column",
-    gap: "8px"
+    gap: "6px"
   },
   sessionCard: {
-    borderRadius: "10px",
-    padding: "12px",
+    borderRadius: "8px",
+    padding: "10px 12px",
     cursor: "pointer",
-    border: "1px solid #261E3E",
-    transition: "all 0.15s ease"
+    border: "1px solid",
+    transition: "background 0.15s ease"
   },
   sessionCardHeader: {
     display: "flex",
@@ -1489,8 +1463,8 @@ const styles = {
     gap: "10px"
   },
   avatarWrap: {
-    width: "36px",
-    height: "36px",
+    width: "32px",
+    height: "32px",
     borderRadius: "50%",
     overflow: "hidden",
     flexShrink: 0
@@ -1505,9 +1479,10 @@ const styles = {
     height: "100%",
     alignItems: "center",
     justifyContent: "center",
-    color: "#FFFFFF",
-    fontWeight: "700",
-    fontSize: "14px"
+    backgroundColor: "rgba(99, 102, 241, 0.2)",
+    color: "#A5B4FC",
+    fontWeight: "600",
+    fontSize: "13px"
   },
   sessionUserMeta: {
     flex: 1,
@@ -1520,8 +1495,8 @@ const styles = {
   },
   userNameText: {
     fontSize: "13px",
-    fontWeight: "700",
-    color: "#FFFFFF",
+    fontWeight: "600",
+    color: "#F8FAFC",
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis"
@@ -1529,26 +1504,26 @@ const styles = {
   googleVerifiedBadge: {
     display: "flex",
     alignItems: "center",
-    backgroundColor: "rgba(34, 197, 94, 0.15)",
-    color: "#4ADE80",
+    backgroundColor: "rgba(16, 185, 129, 0.12)",
+    color: "#34D399",
     fontSize: "9px",
-    fontWeight: "700",
+    fontWeight: "600",
     padding: "1px 5px",
     borderRadius: "4px"
   },
   errorIndicatorBadge: {
     display: "flex",
     alignItems: "center",
-    backgroundColor: "rgba(239, 68, 68, 0.2)",
-    color: "#F87171",
-    fontSize: "10px",
-    fontWeight: "700",
-    padding: "1px 6px",
-    borderRadius: "10px"
+    backgroundColor: "rgba(244, 63, 94, 0.15)",
+    color: "#FB7185",
+    fontSize: "9px",
+    fontWeight: "600",
+    padding: "1px 5px",
+    borderRadius: "8px"
   },
   userSubText: {
     fontSize: "11px",
-    color: "#9D8EB9",
+    color: "#94A3B8",
     display: "block",
     whiteSpace: "nowrap",
     overflow: "hidden",
@@ -1557,56 +1532,52 @@ const styles = {
   },
   sessionTimeTag: {
     fontSize: "11px",
-    color: "#6E6188",
+    color: "#64748B",
     flexShrink: 0
   },
   sessionMetaBadges: {
     display: "flex",
     gap: "6px",
-    marginTop: "8px",
+    marginTop: "6px",
     flexWrap: "wrap"
   },
   metaChip: {
-    backgroundColor: "rgba(255,255,255,0.04)",
-    color: "#9D8EB9",
-    padding: "2px 8px",
-    borderRadius: "6px",
+    backgroundColor: "rgba(255, 255, 255, 0.03)",
+    color: "#94A3B8",
+    padding: "2px 6px",
+    borderRadius: "4px",
     fontSize: "10px",
     display: "flex",
     alignItems: "center",
     gap: "4px"
   },
   paginationRow: {
-    padding: "10px 14px",
-    borderTop: "1px solid #231C38",
+    padding: "8px 12px",
+    borderTop: "1px solid rgba(255, 255, 255, 0.07)",
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "#171228"
+    alignItems: "center"
   },
   pageBtn: {
     display: "flex",
     alignItems: "center",
     gap: "4px",
-    backgroundColor: "#1A142E",
-    border: "1px solid #332650",
+    backgroundColor: "rgba(255, 255, 255, 0.04)",
+    border: "1px solid rgba(255, 255, 255, 0.08)",
     color: "#E2E8F0",
-    padding: "6px 12px",
+    padding: "5px 10px",
     borderRadius: "6px",
-    fontSize: "12px",
+    fontSize: "11px",
     cursor: "pointer"
   },
 
   // Right Column: Timeline Flow
   timelineCol: {
-    backgroundColor: "#130E22",
-    border: "1px solid #231C38",
     borderRadius: "14px",
     display: "flex",
     flexDirection: "column",
     overflow: "hidden",
-    height: "calc(100vh - 280px)",
-    minHeight: "600px"
+    height: "100%"
   },
   timelineWrapper: {
     display: "flex",
@@ -1615,23 +1586,21 @@ const styles = {
     overflow: "hidden"
   },
   userProfileBanner: {
-    padding: "18px 20px",
-    borderBottom: "1px solid #261D3D",
-    backgroundColor: "#171228",
+    padding: "16px 20px",
+    borderBottom: "1px solid rgba(255, 255, 255, 0.07)",
     flexShrink: 0
   },
   userProfileTop: {
     display: "flex",
     alignItems: "center",
-    gap: "14px",
+    gap: "12px",
     flexWrap: "wrap"
   },
   bannerAvatarWrap: {
-    width: "48px",
-    height: "48px",
+    width: "44px",
+    height: "44px",
     borderRadius: "50%",
     overflow: "hidden",
-    boxShadow: "0 0 12px rgba(124, 58, 237, 0.4)",
     flexShrink: 0
   },
   bannerAvatarImg: {
@@ -1644,55 +1613,56 @@ const styles = {
     height: "100%",
     alignItems: "center",
     justifyContent: "center",
-    color: "#FFFFFF",
-    fontWeight: "800",
-    fontSize: "20px"
+    backgroundColor: "rgba(99, 102, 241, 0.2)",
+    color: "#A5B4FC",
+    fontWeight: "700",
+    fontSize: "18px"
   },
   bannerUserName: {
-    fontSize: "18px",
-    fontWeight: "800",
-    color: "#FFFFFF"
+    fontSize: "17px",
+    fontWeight: "700",
+    color: "#F8FAFC"
   },
   authStatusBadge: {
     display: "flex",
     alignItems: "center",
-    backgroundColor: "rgba(34, 197, 94, 0.15)",
-    color: "#4ADE80",
-    border: "1px solid rgba(34, 197, 94, 0.3)",
+    backgroundColor: "rgba(16, 185, 129, 0.12)",
+    color: "#34D399",
+    border: "1px solid rgba(16, 185, 129, 0.25)",
     fontSize: "11px",
-    fontWeight: "600",
-    padding: "2px 8px",
-    borderRadius: "12px"
+    fontWeight: "500",
+    padding: "2px 6px",
+    borderRadius: "10px"
   },
   guestStatusBadge: {
     display: "flex",
     alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
-    color: "#9D8EB9",
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    color: "#94A3B8",
     fontSize: "11px",
-    fontWeight: "600",
-    padding: "2px 8px",
-    borderRadius: "12px"
+    fontWeight: "500",
+    padding: "2px 6px",
+    borderRadius: "10px"
   },
   bannerSubInfoRow: {
     display: "flex",
     alignItems: "center",
-    gap: "12px",
+    gap: "10px",
     marginTop: "4px",
     flexWrap: "wrap"
   },
   bannerEmailText: {
     fontSize: "12px",
-    color: "#D4AF37",
-    fontWeight: "600"
+    color: "#A5B4FC",
+    fontWeight: "500"
   },
   bannerDeviceText: {
     fontSize: "12px",
-    color: "#9D8EB9"
+    color: "#94A3B8"
   },
   bannerIpText: {
     fontSize: "11px",
-    color: "#6E6188",
+    color: "#64748B",
     display: "flex",
     alignItems: "center",
     gap: "4px"
@@ -1700,103 +1670,100 @@ const styles = {
   btnCopyId: {
     display: "flex",
     alignItems: "center",
-    gap: "6px",
-    backgroundColor: "rgba(255,255,255,0.06)",
-    border: "1px solid #332650",
-    color: "#C084FC",
-    padding: "6px 12px",
-    borderRadius: "8px",
+    gap: "4px",
+    backgroundColor: "rgba(255, 255, 255, 0.04)",
+    border: "1px solid rgba(255, 255, 255, 0.08)",
+    color: "#94A3B8",
+    padding: "5px 10px",
+    borderRadius: "6px",
     fontSize: "11px",
-    fontWeight: "600",
     cursor: "pointer"
   },
 
   // KPI Strip
   sessionKpiStrip: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))",
-    gap: "10px",
-    marginTop: "16px",
-    backgroundColor: "#0F0B1A",
-    padding: "10px 14px",
-    borderRadius: "10px",
-    border: "1px solid #231B38"
+    gridTemplateColumns: "repeat(auto-fit, minmax(90px, 1fr))",
+    gap: "8px",
+    marginTop: "12px",
+    backgroundColor: "rgba(255, 255, 255, 0.02)",
+    padding: "8px 12px",
+    borderRadius: "8px",
+    border: "1px solid rgba(255, 255, 255, 0.05)"
   },
   miniKpiBox: {
     display: "flex",
     flexDirection: "column"
   },
   miniKpiValue: {
-    fontSize: "16px",
-    fontWeight: "800",
-    color: "#FFFFFF"
+    fontSize: "15px",
+    fontWeight: "700",
+    color: "#F8FAFC"
   },
   miniKpiLabel: {
     fontSize: "10px",
-    color: "#86789D",
+    color: "#64748B",
     marginTop: "2px"
   },
 
   // Timeline Toolbar
   timelineToolbar: {
-    padding: "10px 18px",
-    borderBottom: "1px solid #231C38",
+    padding: "8px 16px",
+    borderBottom: "1px solid rgba(255, 255, 255, 0.07)",
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
     flexWrap: "wrap",
-    gap: "10px",
-    backgroundColor: "#161026",
+    gap: "8px",
     flexShrink: 0
   },
   timelineTabsRow: {
     display: "flex",
-    gap: "6px",
+    gap: "4px",
     flexWrap: "wrap"
   },
   timelineTabBtn: {
     display: "flex",
     alignItems: "center",
-    padding: "6px 10px",
-    borderRadius: "6px",
-    border: "1px solid #332650",
+    padding: "5px 8px",
+    borderRadius: "5px",
+    border: "1px solid",
     fontSize: "11px",
-    fontWeight: "600",
+    fontWeight: "500",
     cursor: "pointer"
   },
   timelineSearchWrap: {
     display: "flex",
     alignItems: "center",
-    backgroundColor: "#0D0918",
-    border: "1px solid #332650",
+    backgroundColor: "rgba(255, 255, 255, 0.03)",
+    border: "1px solid rgba(255, 255, 255, 0.08)",
     borderRadius: "6px",
-    padding: "0 8px"
+    padding: "0 6px"
   },
   timelineSearchInput: {
-    padding: "6px 8px",
+    padding: "5px 6px",
     backgroundColor: "transparent",
     border: "none",
-    color: "#FFFFFF",
-    fontSize: "12px",
+    color: "#F8FAFC",
+    fontSize: "11px",
     outline: "none",
-    width: "160px"
+    width: "140px"
   },
   timelineClearSearch: {
     background: "transparent",
     border: "none",
-    color: "#9D8EB9",
+    color: "#94A3B8",
     cursor: "pointer"
   },
   btnSortOrder: {
     display: "flex",
     alignItems: "center",
-    backgroundColor: "#1A142E",
-    border: "1px solid #332650",
-    color: "#D4AF37",
-    padding: "6px 10px",
+    backgroundColor: "rgba(255, 255, 255, 0.04)",
+    border: "1px solid rgba(255, 255, 255, 0.08)",
+    color: "#94A3B8",
+    padding: "5px 8px",
     borderRadius: "6px",
     fontSize: "11px",
-    fontWeight: "700",
     cursor: "pointer"
   },
 
@@ -1804,176 +1771,177 @@ const styles = {
   eventsScrollContainer: {
     flex: 1,
     overflowY: "auto",
-    padding: "16px 20px",
+    padding: "14px 18px",
     display: "flex",
     flexDirection: "column",
-    gap: "14px"
+    gap: "10px"
   },
   eventRowCard: {
     display: "flex",
-    gap: "14px"
+    gap: "12px"
   },
   eventLeftCol: {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    width: "74px",
+    width: "70px",
     position: "relative",
     flexShrink: 0
   },
   stepBadge: {
-    fontSize: "10px",
-    fontWeight: "700",
-    color: "#D4AF37",
-    backgroundColor: "rgba(212, 175, 55, 0.15)",
-    padding: "2px 6px",
+    fontSize: "9px",
+    fontWeight: "600",
+    color: "#A5B4FC",
+    backgroundColor: "rgba(99, 102, 241, 0.12)",
+    padding: "2px 5px",
     borderRadius: "4px",
-    marginBottom: "4px"
+    marginBottom: "3px"
   },
   eventTimeText: {
-    fontSize: "11px",
-    color: "#9D8EB9",
-    fontWeight: "600"
+    fontSize: "10px",
+    color: "#64748B",
+    fontWeight: "500"
   },
   timelineVerticalLine: {
     position: "absolute",
-    top: "38px",
-    bottom: "-14px",
-    width: "2px",
-    backgroundColor: "#261D3D"
+    top: "34px",
+    bottom: "-10px",
+    width: "1px",
+    backgroundColor: "rgba(255, 255, 255, 0.08)"
   },
   timelineDot: {
-    width: "8px",
-    height: "8px",
+    width: "6px",
+    height: "6px",
     borderRadius: "50%",
-    marginTop: "8px",
+    marginTop: "6px",
     zIndex: 2
   },
 
   eventCardBody: {
     flex: 1,
-    borderRadius: "10px",
-    padding: "12px 16px",
-    border: "1px solid #281F42"
+    borderRadius: "8px",
+    padding: "10px 14px",
+    border: "1px solid"
   },
   eventCardTop: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
     flexWrap: "wrap",
-    gap: "8px"
+    gap: "6px"
   },
   categoryBadge: {
     display: "flex",
     alignItems: "center",
-    padding: "3px 8px",
-    borderRadius: "6px",
-    fontSize: "11px",
-    fontWeight: "800",
-    letterSpacing: "0.4px"
+    padding: "3px 6px",
+    borderRadius: "4px",
+    fontSize: "10px",
+    fontWeight: "700",
+    letterSpacing: "0.3px",
+    backgroundColor: "rgba(255, 255, 255, 0.06)",
+    color: "#E2E8F0"
   },
   statusChip: {
     display: "flex",
     alignItems: "center",
-    padding: "2px 6px",
+    padding: "2px 5px",
     borderRadius: "4px",
-    fontSize: "10px",
-    fontWeight: "700"
+    fontSize: "9px",
+    fontWeight: "600",
+    border: "1px solid"
   },
   durationChip: {
     display: "flex",
     alignItems: "center",
-    backgroundColor: "rgba(234, 179, 8, 0.15)",
-    color: "#FBBF24",
-    border: "1px solid rgba(234, 179, 8, 0.3)",
-    padding: "2px 6px",
+    backgroundColor: "rgba(255, 255, 255, 0.04)",
+    color: "#CBD5E1",
+    padding: "2px 5px",
     borderRadius: "4px",
-    fontSize: "10px",
-    fontWeight: "700"
+    fontSize: "9px",
+    fontWeight: "500"
   },
   dwellChip: {
     display: "flex",
     alignItems: "center",
-    backgroundColor: "rgba(168, 85, 247, 0.15)",
-    color: "#C084FC",
-    padding: "2px 6px",
+    backgroundColor: "rgba(255, 255, 255, 0.03)",
+    color: "#94A3B8",
+    padding: "2px 5px",
     borderRadius: "4px",
-    fontSize: "10px",
-    fontWeight: "600"
+    fontSize: "9px"
   },
   btnExpandEvent: {
     display: "flex",
     alignItems: "center",
-    gap: "4px",
+    gap: "3px",
     backgroundColor: "transparent",
     border: "none",
-    color: "#9D8EB9",
-    fontSize: "11px",
+    color: "#64748B",
+    fontSize: "10px",
     cursor: "pointer"
   },
   targetRow: {
-    marginTop: "8px",
-    fontSize: "12px",
+    marginTop: "6px",
+    fontSize: "11px",
     display: "flex",
     alignItems: "center",
-    gap: "6px"
+    gap: "5px"
   },
   targetLabel: {
-    color: "#86789D",
-    fontWeight: "600"
+    color: "#64748B",
+    fontWeight: "500"
   },
   targetValue: {
-    color: "#E2E8F0",
-    fontWeight: "700",
-    backgroundColor: "rgba(255,255,255,0.06)",
-    padding: "2px 8px",
-    borderRadius: "4px"
+    color: "#CBD5E1",
+    fontWeight: "600",
+    backgroundColor: "rgba(255, 255, 255, 0.04)",
+    padding: "1px 6px",
+    borderRadius: "3px"
   },
   errorAlertBox: {
-    marginTop: "10px",
-    backgroundColor: "rgba(239, 68, 68, 0.12)",
-    border: "1px solid rgba(239, 68, 68, 0.4)",
-    borderRadius: "8px",
-    padding: "8px 12px"
+    marginTop: "8px",
+    backgroundColor: "rgba(244, 63, 94, 0.1)",
+    border: "1px solid rgba(244, 63, 94, 0.25)",
+    borderRadius: "6px",
+    padding: "6px 10px"
   },
   errorMessageText: {
     color: "#FCA5A5",
-    fontSize: "12px",
+    fontSize: "11px",
     fontFamily: "monospace",
     display: "block",
     wordBreak: "break-word"
   },
   expandedDetailsWrap: {
-    marginTop: "12px",
-    paddingTop: "10px",
-    borderTop: "1px solid #281F42"
+    marginTop: "10px",
+    paddingTop: "8px",
+    borderTop: "1px solid rgba(255, 255, 255, 0.06)"
   },
   jsonHeader: {
-    fontSize: "11px",
-    color: "#9D8EB9",
-    fontWeight: "600",
+    fontSize: "10px",
+    color: "#94A3B8",
+    fontWeight: "500",
     display: "block",
-    marginBottom: "6px"
+    marginBottom: "4px"
   },
   jsonPre: {
-    backgroundColor: "#0A0812",
-    padding: "10px",
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    padding: "8px",
     borderRadius: "6px",
-    fontSize: "11px",
+    fontSize: "10px",
     color: "#A5B4FC",
     overflowX: "auto",
-    lineHeight: "1.4"
+    lineHeight: "1.3"
   },
 
   emptyCard: {
     flex: 1,
     height: "100%",
-    padding: "40px 20px",
+    padding: "36px 16px",
     textAlign: "center",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    color: "#9D8EB9"
+    color: "#64748B"
   }
 };
