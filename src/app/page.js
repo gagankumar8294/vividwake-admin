@@ -176,6 +176,30 @@ export default function AdminAnalyticsDashboard() {
         return { bg: "#10B981", text: "#FFFFFF", label: "📡 CATALOG FETCH" };
       case "set_wallpaper_button_click":
         return { bg: "#8B5CF6", text: "#FFFFFF", label: "📱 SET WALLPAPER TAP" };
+      case "google_signin_button_clicked":
+        return { bg: "#4285F4", text: "#FFFFFF", label: "🔑 GOOGLE SIGN-IN CLICK" };
+      case "google_signin_completed":
+        return { bg: "#34A853", text: "#FFFFFF", label: "✅ GOOGLE SIGN-IN SUCCESS" };
+      case "sign_out_clicked":
+        return { bg: "#64748B", text: "#FFFFFF", label: "🚪 USER SIGN-OUT" };
+      case "notification_bell_clicked":
+        return { bg: "#EC4899", text: "#FFFFFF", label: "🔔 NOTIFICATION BELL TAP" };
+      case "notification_item_clicked":
+        return { bg: "#D946EF", text: "#FFFFFF", label: "📩 NOTIFICATION ITEM OPENED" };
+      case "notification_clear_all_clicked":
+        return { bg: "#64748B", text: "#FFFFFF", label: "🧹 NOTIFICATIONS CLEARED" };
+      case "toggle_audio_mute":
+        return { bg: "#06B6D4", text: "#0A0812", label: "🔊 AUDIO MUTE TOGGLE" };
+      case "change_playback_mode":
+        return { bg: "#EAB308", text: "#0A0812", label: "⚙️ PLAYBACK MODE CHANGE" };
+      case "direct_gallery_handoff_click":
+        return { bg: "#8B5CF6", text: "#FFFFFF", label: "📤 GALLERY DIRECT HAND-OFF" };
+      case "clear_lock_override_click":
+        return { bg: "#F97316", text: "#FFFFFF", label: "🔓 CLEAR LOCK OVERRIDE" };
+      case "export_video_click":
+        return { bg: "#14B8A6", text: "#FFFFFF", label: "💾 EXPORT VIDEO CLICK" };
+      case "refresh_store_click":
+        return { bg: "#10B981", text: "#FFFFFF", label: "🔄 REFRESH STORE CLICK" };
       case "thumbnail_ready":
         return { bg: "#06B6D4", text: "#0A0812", label: "🖼️ THUMB EXTRACTED" };
       case "tab_switch":
@@ -525,16 +549,44 @@ export default function AdminAnalyticsDashboard() {
                           <span style={{ ...styles.eventTypeBadge, backgroundColor: badge.bg, color: badge.text }}>
                             {badge.label}
                           </span>
-                          {ev.dwellMs > 0 && (
-                            <span style={styles.dwellBadge}>
-                              {(ev.dwellMs / 1000).toFixed(1)}s dwell
-                            </span>
-                          )}
+                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                            {ev.status && (
+                              <span
+                                style={{
+                                  ...styles.statusBadge,
+                                  backgroundColor: ev.status === 'SUCCESS' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.2)',
+                                  color: ev.status === 'SUCCESS' ? '#4ADE80' : '#F87171',
+                                  border: `1px solid ${ev.status === 'SUCCESS' ? 'rgba(34, 197, 94, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`
+                                }}
+                              >
+                                {ev.status === 'SUCCESS' ? '✓ SUCCESS' : '✗ FAILED'}
+                              </span>
+                            )}
+                            {(ev.durationMs > 0 || ev.durationSec) && (
+                              <span style={styles.durationBadge}>
+                                ⚡ {ev.durationMs > 0 ? `${ev.durationMs}ms` : `${ev.durationSec}s`}
+                              </span>
+                            )}
+                            {ev.dwellMs > 0 && (
+                              <span style={styles.dwellBadge}>
+                                {(ev.dwellMs / 1000).toFixed(1)}s dwell
+                              </span>
+                            )}
+                          </div>
                         </div>
 
                         {ev.target && (
                           <div style={styles.nodeTarget}>
                             <strong>Target:</strong> {ev.target}
+                          </div>
+                        )}
+
+                        {ev.errorMessage && (
+                          <div style={styles.nodeErrorBox}>
+                            <span style={{ color: '#F87171', fontWeight: '700' }}>
+                              ⚠️ {ev.errorType || 'Exception'}:
+                            </span>{' '}
+                            {ev.errorMessage}
                           </div>
                         )}
                       </div>
@@ -1029,6 +1081,33 @@ const styles = {
     fontSize: "11px",
     color: "#D4AF37",
     fontWeight: "600"
+  },
+  statusBadge: {
+    fontSize: "10px",
+    fontWeight: "700",
+    padding: "2px 6px",
+    borderRadius: "4px",
+    letterSpacing: "0.4px"
+  },
+  durationBadge: {
+    fontSize: "10px",
+    fontWeight: "700",
+    color: "#C084FC",
+    backgroundColor: "rgba(168, 85, 247, 0.15)",
+    border: "1px solid rgba(168, 85, 247, 0.3)",
+    padding: "2px 6px",
+    borderRadius: "4px"
+  },
+  nodeErrorBox: {
+    marginTop: "8px",
+    padding: "8px 12px",
+    backgroundColor: "rgba(239, 68, 68, 0.1)",
+    border: "1px solid rgba(239, 68, 68, 0.3)",
+    borderRadius: "8px",
+    color: "#FCA5A5",
+    fontSize: "12px",
+    fontFamily: "monospace",
+    lineHeight: "1.4"
   },
   nodeTarget: {
     fontSize: "12px",
