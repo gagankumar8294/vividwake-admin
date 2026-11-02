@@ -66,6 +66,38 @@ export default function AdminAnalyticsDashboard() {
   const [timelineSortOrder, setTimelineSortOrder] = useState("asc");
   const [expandedEvents, setExpandedEvents] = useState({});
   const [copiedId, setCopiedId] = useState(false);
+  const [unlocking, setUnlocking] = useState(false);
+  const [unlockMessage, setUnlockMessage] = useState("");
+
+  const handleAdminUnlock = async (emailToUnlock) => {
+    if (!emailToUnlock) return;
+    if (!confirm(`Are you sure you want to release the 1-to-1 device lock for ${emailToUnlock}? This will allow the user to bind a new phone.`)) {
+      return;
+    }
+    setUnlocking(true);
+    setUnlockMessage("");
+    try {
+      const res = await fetch("/api/admin/locks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-authorization": password
+        },
+        body: JSON.stringify({ email: emailToUnlock })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setUnlockMessage("Lock released! Device and email are now free to re-bind.");
+        setTimeout(() => setUnlockMessage(""), 5000);
+      } else {
+        alert("Failed to release lock: " + (data.error || "Unknown error"));
+      }
+    } catch (e) {
+      alert("Error contacting lock API: " + e.message);
+    } finally {
+      setUnlocking(false);
+    }
+  };
 
   // Ref to preserve currently selected session across refreshes without jumping
   const selectedSessionIdRef = useRef(null);
@@ -865,7 +897,33 @@ export default function AdminAnalyticsDashboard() {
                           Google Auth
                         </span>
                       )}
+                      {selectedSession.email && (
+                        <button
+                          type="button"
+                          onClick={() => handleAdminUnlock(selectedSession.email)}
+                          disabled={unlocking}
+                          style={{
+                            fontSize: "0.62rem",
+                            fontWeight: "700",
+                            background: "rgba(239, 68, 68, 0.15)",
+                            color: "var(--accent-rose)",
+                            border: "1px solid rgba(239, 68, 68, 0.3)",
+                            padding: "1px 7px",
+                            borderRadius: "4px",
+                            cursor: "pointer",
+                            transition: "all 0.2s"
+                          }}
+                          title="Release 1-to-1 Device-to-Email lock for this user"
+                        >
+                          {unlocking ? "Releasing..." : "Unlock Device Bond"}
+                        </button>
+                      )}
                     </div>
+                    {unlockMessage && (
+                      <div style={{ fontSize: "0.65rem", color: "var(--accent-mint)", marginTop: "2px" }}>
+                        {unlockMessage}
+                      </div>
+                    )}
                     <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "2px" }}>
                       <span
                         onClick={() => copySessionId(selectedSession.sessionId)}
