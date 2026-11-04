@@ -30,38 +30,48 @@ export async function GET(request) {
     const limit = parseInt(searchParams.get("limit") || "30", 10);
     const skip = (page - 1) * limit;
 
-    let query = {};
+    const conditions = [];
 
     // 1. Filter by specific date
     if (dateFilter) {
       const startOfDay = new Date(`${dateFilter}T00:00:00.000Z`);
       const endOfDay = new Date(`${dateFilter}T23:59:59.999Z`);
-      query.createdAt = { $gte: startOfDay, $lte: endOfDay };
+      conditions.push({
+        $or: [
+          { createdAt: { $gte: startOfDay, $lte: endOfDay } },
+          { updatedAt: { $gte: startOfDay, $lte: endOfDay } }
+        ]
+      });
     }
 
     // 2. Filter by user type or error presence
     if (typeFilter === "auth") {
-      query.userId = { $ne: null };
+      conditions.push({ userId: { $ne: null } });
     } else if (typeFilter === "anon") {
-      query.userId = null;
+      conditions.push({ userId: null });
     } else if (typeFilter === "errors") {
-      query["events.status"] = "FAILED";
+      conditions.push({ "events.status": "FAILED" });
     }
 
-    // 3. Search by User, Device, Session, or Action
+    // 3. Search by User, Device, Session, IP, or Action
     if (searchParam.trim()) {
       const q = searchParam.trim();
-      query.$or = [
-        { email: { $regex: q, $options: "i" } },
-        { userName: { $regex: q, $options: "i" } },
-        { deviceBrand: { $regex: q, $options: "i" } },
-        { deviceModel: { $regex: q, $options: "i" } },
-        { deviceId: { $regex: q, $options: "i" } },
-        { sessionId: { $regex: q, $options: "i" } },
-        { "events.target": { $regex: q, $options: "i" } },
-        { "events.action": { $regex: q, $options: "i" } }
-      ];
+      conditions.push({
+        $or: [
+          { email: { $regex: q, $options: "i" } },
+          { userName: { $regex: q, $options: "i" } },
+          { deviceBrand: { $regex: q, $options: "i" } },
+          { deviceModel: { $regex: q, $options: "i" } },
+          { deviceId: { $regex: q, $options: "i" } },
+          { sessionId: { $regex: q, $options: "i" } },
+          { ip: { $regex: q, $options: "i" } },
+          { "events.target": { $regex: q, $options: "i" } },
+          { "events.action": { $regex: q, $options: "i" } }
+        ]
+      });
     }
+
+    const query = conditions.length > 0 ? { $and: conditions } : {};
 
     // 4. Sorting logic
     let sortObj = { updatedAt: -1 };

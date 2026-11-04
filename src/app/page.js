@@ -39,7 +39,11 @@ import {
   FiWifi,
   FiCalendar,
   FiDatabase,
-  FiSun
+  FiSun,
+  FiCpu,
+  FiBatteryCharging,
+  FiMonitor,
+  FiHardDrive
 } from "react-icons/fi";
 
 export default function AdminAnalyticsDashboard() {
@@ -52,7 +56,11 @@ export default function AdminAnalyticsDashboard() {
   const [overview, setOverview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [selectedSession, setSelectedSession] = useState(null);
-  const [selectedDate, setSelectedDate] = useState("");
+  const getTodayYmd = () => {
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  };
+  const [selectedDate, setSelectedDate] = useState(getTodayYmd);
   const [filterType, setFilterType] = useState("all"); // 'all', 'auth', 'anon', 'errors'
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("recent"); // 'recent', 'oldest', 'actions', 'duration', 'errors'
@@ -800,6 +808,11 @@ export default function AdminAnalyticsDashboard() {
                       <span className="meta-chip-item">
                         <FiSmartphone size={10} /> {sess.deviceModel || "Android"}
                       </span>
+                      {sess.ip && (
+                        <span className="meta-chip-item" title="Client IP">
+                          <FiWifi size={9} /> {sess.ip}
+                        </span>
+                      )}
                       <span className="meta-chip-item">
                         <FiClock size={10} /> {formatDuration(sess.totalDuration)}
                       </span>
@@ -1010,6 +1023,52 @@ export default function AdminAnalyticsDashboard() {
                     <span className="stat-cell-lbl">Avg Latency</span>
                   </div>
                 </div>
+              </div>
+
+              {/* Comprehensive Device & Client Specs Bar */}
+              <div className="device-specs-bar">
+                <span className="spec-badge" title="Client IP Address">
+                  <FiWifi size={10} color="var(--accent-mint)" />
+                  <span>IP: {selectedSession.ip || "Direct Socket"}</span>
+                </span>
+                <span className="spec-badge" title="Hardware Brand & Model">
+                  <FiSmartphone size={10} />
+                  <span>{selectedSession.deviceBrand || "Android"} {selectedSession.deviceModel || ""}</span>
+                </span>
+                <span className="spec-badge" title="Android OS Version">
+                  <FiSliders size={10} />
+                  <span>{selectedSession.osVersion || "Android"}</span>
+                </span>
+                {selectedSession.screenResolution && (
+                  <span className="spec-badge" title="Display Resolution">
+                    <FiMonitor size={10} />
+                    <span>{selectedSession.screenResolution}</span>
+                  </span>
+                )}
+                {selectedSession.ramTotalMB && (
+                  <span className="spec-badge" title="Device Memory (RAM)">
+                    <FiHardDrive size={10} />
+                    <span>{Math.round(selectedSession.ramTotalMB / 1024)}GB RAM</span>
+                  </span>
+                )}
+                {selectedSession.batteryLevel !== undefined && selectedSession.batteryLevel >= 0 && (
+                  <span className="spec-badge" title="Battery Status">
+                    <FiBatteryCharging size={10} />
+                    <span>{selectedSession.batteryLevel}%</span>
+                  </span>
+                )}
+                {selectedSession.networkType && (
+                  <span className="spec-badge" title="Network Connection Type">
+                    <FiGlobe size={10} />
+                    <span>{selectedSession.networkType}</span>
+                  </span>
+                )}
+                {selectedSession.appVersion && (
+                  <span className="spec-badge" title="App Version">
+                    <FiZap size={10} />
+                    <span>v{selectedSession.appVersion}</span>
+                  </span>
+                )}
               </div>
 
               {/* Event Sub-Filter Strip */}
