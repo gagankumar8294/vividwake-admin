@@ -930,18 +930,18 @@ export default function AdminAnalyticsDashboard() {
                   )}
 
                   <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <span style={{ fontSize: "0.92rem", fontWeight: "800", color: "#ffffff" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <span style={{ fontSize: "1.08rem", fontWeight: "800", color: "#ffffff", letterSpacing: "-0.01em" }}>
                         {selectedSession.userName || selectedSession.email || "Guest Android User"}
                       </span>
                       {selectedSession.userId && (
                         <span
                           style={{
-                            fontSize: "0.62rem",
+                            fontSize: "0.72rem",
                             fontWeight: "700",
-                            background: "rgba(16, 185, 129, 0.15)",
+                            background: "rgba(45, 212, 191, 0.12)",
                             color: "var(--accent-mint)",
-                            padding: "1px 5px",
+                            padding: "2px 6px",
                             borderRadius: "4px"
                           }}
                         >
@@ -954,15 +954,15 @@ export default function AdminAnalyticsDashboard() {
                           onClick={() => handleAdminUnlock(selectedSession.email)}
                           disabled={unlocking}
                           style={{
-                            fontSize: "0.62rem",
+                            fontSize: "0.72rem",
                             fontWeight: "700",
-                            background: "rgba(239, 68, 68, 0.15)",
+                            background: "rgba(220, 38, 38, 0.12)",
                             color: "var(--accent-rose)",
-                            border: "1px solid rgba(239, 68, 68, 0.3)",
-                            padding: "1px 7px",
-                            borderRadius: "4px",
+                            border: "1px solid rgba(220, 38, 38, 0.25)",
+                            padding: "2px 8px",
+                            borderRadius: "5px",
                             cursor: "pointer",
-                            transition: "all 0.2s"
+                            transition: "all 0.15s"
                           }}
                           title="Release 1-to-1 Device-to-Email lock for this user"
                         >
@@ -971,30 +971,30 @@ export default function AdminAnalyticsDashboard() {
                       )}
                     </div>
                     {unlockMessage && (
-                      <div style={{ fontSize: "0.65rem", color: "var(--accent-mint)", marginTop: "2px" }}>
+                      <div style={{ fontSize: "0.72rem", color: "var(--accent-mint)", marginTop: "2px" }}>
                         {unlockMessage}
                       </div>
                     )}
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "2px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "3px" }}>
                       <span
                         onClick={() => copySessionId(selectedSession.sessionId)}
                         style={{
-                          fontSize: "0.68rem",
+                          fontSize: "0.76rem",
                           color: "var(--text-sub)",
                           cursor: "pointer",
                           display: "inline-flex",
                           alignItems: "center",
-                          gap: "3px"
+                          gap: "4px"
                         }}
                         title="Click to copy Session ID"
                       >
-                        <FiCopy size={10} />
+                        <FiCopy size={11} />
                         {selectedSession.sessionId}
                         {copiedId && <span style={{ color: "var(--accent-mint)" }}>copied!</span>}
                       </span>
                       {selectedSession.ip && (
-                        <span style={{ fontSize: "0.68rem", color: "var(--text-sub)", display: "inline-flex", alignItems: "center", gap: "3px" }}>
-                          <FiWifi size={10} /> {selectedSession.ip}
+                        <span style={{ fontSize: "0.76rem", color: "var(--text-sub)", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                          <FiWifi size={11} /> {selectedSession.ip}
                         </span>
                       )}
                     </div>
