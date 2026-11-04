@@ -59,6 +59,7 @@ export default function AdminAnalyticsDashboard() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
+  const [mobileTab, setMobileTab] = useState("sessions"); // 'sessions' | 'journey'
 
   // Timeline controls
   const [timelineFilter, setTimelineFilter] = useState("all"); // 'all', 'wallpapers', 'clicks', 'errors'
@@ -331,10 +332,11 @@ export default function AdminAnalyticsDashboard() {
       <div
         style={{
           height: "100vh",
+          height: "100dvh",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "var(--page-bg, #0a0d14)",
+          background: "radial-gradient(circle at 10% 10%, rgba(42, 28, 68, 0.5) 0%, transparent 40%), radial-gradient(circle at 90% 90%, rgba(16, 185, 129, 0.12) 0%, transparent 45%), radial-gradient(circle at 50% 50%, rgba(20, 14, 36, 0.5) 0%, transparent 60%), #07090e",
           padding: "1rem"
         }}
       >
@@ -342,14 +344,16 @@ export default function AdminAnalyticsDashboard() {
           style={{
             maxWidth: "400px",
             width: "100%",
-            background: "var(--card-bg, #111827)",
-            border: "1px solid var(--card-border, rgba(255, 255, 255, 0.08))",
-            borderRadius: "12px",
-            padding: "2rem",
+            background: "rgba(17, 24, 39, 0.6)",
+            backdropFilter: "blur(24px) saturate(180%)",
+            WebkitBackdropFilter: "blur(24px) saturate(180%)",
+            border: "1px solid rgba(255, 255, 255, 0.1)",
+            borderRadius: "16px",
+            padding: "2.2rem 2rem",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            boxShadow: "0 20px 40px rgba(0,0,0,0.5)"
+            boxShadow: "0 20px 50px rgba(0,0,0,0.6)"
           }}
         >
           <div
@@ -358,17 +362,18 @@ export default function AdminAnalyticsDashboard() {
               height: "50px",
               borderRadius: "50%",
               background: "rgba(16, 185, 129, 0.15)",
-              border: "1px solid rgba(16, 185, 129, 0.3)",
+              border: "1px solid rgba(16, 185, 129, 0.35)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               color: "var(--accent-mint, #34d399)",
-              marginBottom: "1rem"
+              marginBottom: "1rem",
+              boxShadow: "0 0 20px rgba(16, 185, 129, 0.25)"
             }}
           >
             <FiLock size={22} />
           </div>
-          <h2 style={{ fontSize: "1.25rem", fontWeight: "800", color: "#ffffff", marginBottom: "0.25rem" }}>
+          <h2 style={{ fontSize: "1.25rem", fontWeight: "800", color: "#ffffff", marginBottom: "0.25rem", letterSpacing: "-0.01em" }}>
             VividWake Console
           </h2>
           <p style={{ fontSize: "0.8rem", color: "var(--text-sub, #6d937d)", textAlign: "center", marginBottom: "1.5rem" }}>
@@ -383,14 +388,16 @@ export default function AdminAnalyticsDashboard() {
               onChange={(e) => setInputPassword(e.target.value)}
               style={{
                 width: "100%",
-                padding: "0.65rem 0.85rem",
-                borderRadius: "6px",
-                background: "var(--input-bg, #0d1117)",
-                border: "1px solid var(--input-border, rgba(255,255,255,0.12))",
+                padding: "0.7rem 0.9rem",
+                borderRadius: "8px",
+                background: "rgba(13, 17, 23, 0.65)",
+                backdropFilter: "blur(12px)",
+                border: "1px solid rgba(255,255,255,0.14)",
                 color: "#ffffff",
                 fontSize: "0.85rem",
                 outline: "none",
-                marginBottom: "0.75rem"
+                marginBottom: "0.75rem",
+                transition: "all 0.2s"
               }}
               autoFocus
             />
@@ -410,14 +417,15 @@ export default function AdminAnalyticsDashboard() {
               type="submit"
               style={{
                 width: "100%",
-                padding: "0.65rem",
-                borderRadius: "6px",
+                padding: "0.7rem",
+                borderRadius: "8px",
                 background: "var(--accent-emerald, #10b981)",
-                color: "#0a0d14",
+                color: "#07090e",
                 fontWeight: "700",
                 fontSize: "0.85rem",
                 border: "none",
                 cursor: "pointer",
+                boxShadow: "0 4px 15px rgba(16, 185, 129, 0.3)",
                 transition: "all 0.2s"
               }}
             >
@@ -654,10 +662,30 @@ export default function AdminAnalyticsDashboard() {
         </div>
       </section>
 
+      {/* Mobile Navigation Switcher (Hidden on Desktop, Visible <= 860px) */}
+      <div className="mobile-nav-switcher">
+        <button
+          type="button"
+          className={`mobile-nav-tab ${mobileTab === "sessions" ? "active" : ""}`}
+          onClick={() => setMobileTab("sessions")}
+        >
+          <FiActivity size={13} />
+          <span>Recent Activity ({totalRecords})</span>
+        </button>
+        <button
+          type="button"
+          className={`mobile-nav-tab ${mobileTab === "journey" ? "active" : ""}`}
+          onClick={() => setMobileTab("journey")}
+        >
+          <FiLayers size={13} />
+          <span>Journey Trail {selectedSession ? "• Active" : ""}</span>
+        </button>
+      </div>
+
       {/* Main Two-Panel Body */}
       <main className="analytics-body">
         {/* Left Panel: Session Stream */}
-        <section className="session-panel">
+        <section className={`session-panel ${mobileTab !== "sessions" ? "mobile-hidden" : ""}`}>
           <div className="panel-title">
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <h2>Recent Activity Sessions</h2>
@@ -698,7 +726,10 @@ export default function AdminAnalyticsDashboard() {
                 return (
                   <div
                     key={sess.sessionId}
-                    onClick={() => setSelectedSession(sess)}
+                    onClick={() => {
+                      setSelectedSession(sess);
+                      setMobileTab("journey");
+                    }}
                     className={`session-card ${isSelected ? "selected" : ""}`}
                   >
                     <div className="card-top">
@@ -841,7 +872,7 @@ export default function AdminAnalyticsDashboard() {
         </section>
 
         {/* Right Panel: Journey Flow Visualizer */}
-        <section className="visualizer-panel">
+        <section className={`visualizer-panel ${mobileTab !== "journey" ? "mobile-hidden" : ""}`}>
           {!selectedSession ? (
             <div className="empty-radar-wrap">
               <FiLayers size={36} />
@@ -856,6 +887,13 @@ export default function AdminAnalyticsDashboard() {
             <>
               {/* Header Profile & Session Stats */}
               <div className="timeline-header-strip">
+                <button
+                  type="button"
+                  onClick={() => setMobileTab("sessions")}
+                  className="page-btn mobile-back-btn"
+                >
+                  <FiChevronLeft size={13} /> Back to Sessions
+                </button>
                 <div className="user-identity-card">
                   {selectedSession.userPhoto ? (
                     <img
