@@ -78,9 +78,12 @@ export default function AdminAnalyticsDashboard() {
   const [unlocking, setUnlocking] = useState(false);
   const [unlockMessage, setUnlockMessage] = useState("");
 
-  const handleAdminUnlock = async (emailToUnlock) => {
-    if (!emailToUnlock) return;
-    if (!confirm(`Are you sure you want to release the 1-to-1 device lock for ${emailToUnlock}? This will allow the user to bind a new phone.`)) {
+  const handleDeviceAction = async (action, emailToTarget, extraData = {}) => {
+    if (!emailToTarget) return;
+    if (action === "ban" && !confirm(`🚨 ACTIVATE REMOTE KILL SWITCH?\n\nThis will immediately ban ${emailToTarget}, reset their wallpaper to default, and block app access.`)) {
+      return;
+    }
+    if (action === "unlock" && !confirm(`Release 1-to-1 device lock for ${emailToTarget}? This will allow the user to bind a new phone.`)) {
       return;
     }
     setUnlocking(true);
@@ -92,14 +95,15 @@ export default function AdminAnalyticsDashboard() {
           "Content-Type": "application/json",
           "x-admin-authorization": password
         },
-        body: JSON.stringify({ email: emailToUnlock })
+        body: JSON.stringify({ action, email: emailToTarget, ...extraData })
       });
       const data = await res.json();
       if (data.success) {
-        setUnlockMessage("Lock released! Device and email are now free to re-bind.");
+        setUnlockMessage(data.message || "Command executed successfully.");
         setTimeout(() => setUnlockMessage(""), 5000);
+        fetchSessions(page, false);
       } else {
-        alert("Failed to release lock: " + (data.error || "Unknown error"));
+        alert("Action failed: " + (data.error || "Unknown error"));
       }
     } catch (e) {
       alert("Error contacting lock API: " + e.message);
@@ -949,25 +953,67 @@ export default function AdminAnalyticsDashboard() {
                         </span>
                       )}
                       {selectedSession.email && (
-                        <button
-                          type="button"
-                          onClick={() => handleAdminUnlock(selectedSession.email)}
-                          disabled={unlocking}
-                          style={{
-                            fontSize: "0.72rem",
-                            fontWeight: "700",
-                            background: "rgba(220, 38, 38, 0.12)",
-                            color: "var(--accent-rose)",
-                            border: "1px solid rgba(220, 38, 38, 0.25)",
-                            padding: "2px 8px",
-                            borderRadius: "5px",
-                            cursor: "pointer",
-                            transition: "all 0.15s"
-                          }}
-                          title="Release 1-to-1 Device-to-Email lock for this user"
-                        >
-                          {unlocking ? "Releasing..." : "Unlock Device Bond"}
-                        </button>
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                          <button
+                            type="button"
+                            onClick={() => handleDeviceAction("unlock", selectedSession.email)}
+                            disabled={unlocking}
+                            style={{
+                              fontSize: "0.72rem",
+                              fontWeight: "700",
+                              background: "rgba(59, 130, 246, 0.12)",
+                              color: "#60a5fa",
+                              border: "1px solid rgba(59, 130, 246, 0.25)",
+                              padding: "2px 8px",
+                              borderRadius: "5px",
+                              cursor: "pointer",
+                              transition: "all 0.15s"
+                            }}
+                            title="Release 1-to-1 Device-to-Email bond"
+                          >
+                            {unlocking ? "..." : "Unlock Bond"}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeviceAction("set-tier", selectedSession.email, { tier: "VIP" })}
+                            disabled={unlocking}
+                            style={{
+                              fontSize: "0.72rem",
+                              fontWeight: "700",
+                              background: "rgba(234, 179, 8, 0.12)",
+                              color: "#facc15",
+                              border: "1px solid rgba(234, 179, 8, 0.25)",
+                              padding: "2px 8px",
+                              borderRadius: "5px",
+                              cursor: "pointer",
+                              transition: "all 0.15s"
+                            }}
+                            title="Grant VIP Tier (Unlimited Downloads & Instant Previews)"
+                          >
+                            Grant VIP
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeviceAction("ban", selectedSession.email, { reason: "Restricted by admin" })}
+                            disabled={unlocking}
+                            style={{
+                              fontSize: "0.72rem",
+                              fontWeight: "700",
+                              background: "rgba(220, 38, 38, 0.15)",
+                              color: "var(--accent-rose)",
+                              border: "1px solid rgba(220, 38, 38, 0.35)",
+                              padding: "2px 8px",
+                              borderRadius: "5px",
+                              cursor: "pointer",
+                              transition: "all 0.15s"
+                            }}
+                            title="Remote Kill Switch — Instantly disable app & revoke lock screen"
+                          >
+                            Kill Switch
+                          </button>
+                        </div>
                       )}
                     </div>
                     {unlockMessage && (
