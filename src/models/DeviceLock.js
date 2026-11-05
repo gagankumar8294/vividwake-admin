@@ -49,6 +49,45 @@ const deviceLockSchema = new mongoose.Schema(
     notes: {
       type: String,
       default: ""
+    },
+    isBanned: {
+      type: Boolean,
+      default: false,
+      index: true
+    },
+    banReason: {
+      type: String,
+      default: ""
+    },
+    bannedAt: {
+      type: Date,
+      default: null
+    },
+    tier: {
+      type: String,
+      enum: ["FREE", "STANDARD", "VIP", "CUSTOM"],
+      default: "FREE"
+    },
+    customDownloadLimit: {
+      type: Number,
+      default: 0
+    },
+    tierExpiresAt: {
+      type: Date,
+      default: null
+    },
+    transferRequest: {
+      status: {
+        type: String,
+        enum: ["NONE", "PENDING", "APPROVED", "REJECTED"],
+        default: "NONE"
+      },
+      newHardwareFingerprint: { type: String, default: "" },
+      newDeviceBrand: { type: String, default: "" },
+      newDeviceModel: { type: String, default: "" },
+      reason: { type: String, default: "" },
+      requestedAt: { type: Date, default: null },
+      reviewedAt: { type: Date, default: null }
     }
   },
   {

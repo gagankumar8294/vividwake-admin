@@ -25,7 +25,7 @@ export async function GET(request) {
 }
 
 /**
- * POST: Unlock / Release a Device or Email Lock
+ * POST: Admin Actions on Device Locks (Unlock, Kill Switch Ban/Unban, Tier Override, Transfer Approval)
  */
 export async function POST(request) {
   try {
@@ -37,7 +37,7 @@ export async function POST(request) {
 
     await connectDB();
     const body = await request.json();
-    const { id, email, hardwareFingerprint } = body;
+    const { action, id, email, hardwareFingerprint, reason, tier, customDownloadLimit, daysValid } = body;
 
     let query = {};
     if (id) query._id = id;
@@ -52,6 +52,67 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: "Lock record not found" }, { status: 404 });
     }
 
+    // 1. Kill Switch: Ban Device
+    if (action === "ban") {
+      lock.isBanned = true;
+      lock.banReason = reason || "Administrative restriction";
+      lock.bannedAt = new Date();
+      await lock.save();
+      return NextResponse.json({ success: true, message: `Kill switch activated: ${lock.boundEmail} / ${lock.hardwareFingerprint} banned.`, lock });
+    }
+
+    // 2. Kill Switch: Unban Device
+    if (action === "unban") {
+      lock.isBanned = false;
+      lock.banReason = "";
+      lock.bannedAt = null;
+      await lock.save();
+      return NextResponse.json({ success: true, message: `Device restored: ${lock.boundEmail} unbanned.`, lock });
+    }
+
+    // 3. User Tier Override (Standard, VIP Unlimited, Custom Quota)
+    if (action === "set-tier") {
+      lock.tier = tier || "STANDARD";
+      if (customDownloadLimit !== undefined) {
+        lock.customDownloadLimit = customDownloadLimit;
+      }
+      if (daysValid && daysValid > 0) {
+        lock.tierExpiresAt = new Date(Date.now() + daysValid * 24 * 60 * 60 * 1000);
+      } else {
+        lock.tierExpiresAt = null; // Lifetime
+      }
+      await lock.save();
+      return NextResponse.json({ success: true, message: `Tier updated to ${lock.tier} for ${lock.boundEmail}.`, lock });
+    }
+
+    // 4. Rebind Transfer: Approve
+    if (action === "approve-transfer") {
+      if (!lock.transferRequest || lock.transferRequest.status !== "PENDING") {
+        return NextResponse.json({ success: false, error: "No pending transfer request found" }, { status: 400 });
+      }
+      lock.hardwareFingerprint = lock.transferRequest.newHardwareFingerprint;
+      lock.deviceBrand = lock.transferRequest.newDeviceBrand;
+      lock.deviceModel = lock.transferRequest.newDeviceModel;
+      lock.transferRequest.status = "APPROVED";
+      lock.transferRequest.reviewedAt = new Date();
+      lock.lastVerifiedAt = new Date();
+      lock.notes = `Transfer approved by admin to ${lock.deviceModel} at ${new Date().toISOString()}`;
+      await lock.save();
+      return NextResponse.json({ success: true, message: `Device transfer approved! Account is now bound to ${lock.deviceModel}.`, lock });
+    }
+
+    // 5. Rebind Transfer: Reject
+    if (action === "reject-transfer") {
+      if (!lock.transferRequest) {
+        return NextResponse.json({ success: false, error: "No transfer request found" }, { status: 400 });
+      }
+      lock.transferRequest.status = "REJECTED";
+      lock.transferRequest.reviewedAt = new Date();
+      await lock.save();
+      return NextResponse.json({ success: true, message: `Device transfer rejected for ${lock.boundEmail}.`, lock });
+    }
+
+    // 6. Default: Release 1-to-1 Device Bond
     lock.status = "UNLOCKED";
     lock.notes = `Unlocked by admin at ${new Date().toISOString()}`;
     await lock.save();
