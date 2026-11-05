@@ -1,6 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import Sidebar from "@/components/Sidebar";
+import DeviceLocksTab from "@/components/DeviceLocksTab";
+import TransfersTab from "@/components/TransfersTab";
+import NotificationsTab from "@/components/NotificationsTab";
+import VersionGateTab from "@/components/VersionGateTab";
+import SecurityShieldTab from "@/components/SecurityShieldTab";
 import {
   FiUsers,
   FiUser,
@@ -78,6 +84,23 @@ export default function AdminAnalyticsDashboard() {
   const [unlocking, setUnlocking] = useState(false);
   const [unlockMessage, setUnlockMessage] = useState("");
 
+  const [activeTab, setActiveTab] = useState("sessions");
+  const [pendingTransfersCount, setPendingTransfersCount] = useState(0);
+
+  const fetchPendingTransfers = async (pw = password) => {
+    if (!pw) return;
+    try {
+      const res = await fetch("/api/admin/locks", {
+        headers: { "x-admin-authorization": pw }
+      });
+      const data = await res.json();
+      if (data.success && data.locks) {
+        const pending = data.locks.filter((l) => l.transferRequest && l.transferRequest.status === "PENDING").length;
+        setPendingTransfersCount(pending);
+      }
+    } catch (_e) {}
+  };
+
   const handleDeviceAction = async (action, emailToTarget, extraData = {}) => {
     if (!emailToTarget) return;
     if (action === "ban" && !confirm(`🚨 ACTIVATE REMOTE KILL SWITCH?\n\nThis will immediately ban ${emailToTarget}, reset their wallpaper to default, and block app access.`)) {
@@ -124,6 +147,7 @@ export default function AdminAnalyticsDashboard() {
     if (saved) {
       setPassword(saved);
       setIsAuthenticated(true);
+      fetchPendingTransfers(saved);
     }
   }, []);
 
@@ -216,6 +240,7 @@ export default function AdminAnalyticsDashboard() {
       localStorage.setItem("vividwake_admin_pw", "romeoPistol");
       setIsAuthenticated(true);
       setAuthError("");
+      fetchPendingTransfers("romeoPistol");
     } else {
       setAuthError("Incorrect password. Hint: romeoPistol");
     }
@@ -455,39 +480,74 @@ export default function AdminAnalyticsDashboard() {
   const metrics = overview?.metrics || {};
 
   return (
-    <div className="analytics-page">
-      {/* Top Header Bar */}
-      <header className="header-top">
-        <div className="brand-section">
-          <div className="brand-icon-box">
-            <FiActivity size={18} />
-          </div>
+    <div className="admin-shell">
+      {/* 1. Global Navigation Sidebar */}
+      <Sidebar
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+        pendingTransfersCount={pendingTransfersCount}
+        onLogout={handleLogout}
+      />
+
+      {/* 2. Main Stage */}
+      <main className="admin-main-stage">
+        {/* Stage Top Bar */}
+        <header className="stage-top-bar">
           <div>
-            <h1 className="brand-title">VividWake Analytics</h1>
-            <span className="brand-subtitle">Real-time user journey & event telemetry monitoring</span>
+            <h1 style={{ fontSize: "1.1rem", fontWeight: "700", color: "#ffffff", letterSpacing: "-0.01em" }}>
+              {activeTab === "sessions" && "Live Telemetry & User Journeys"}
+              {activeTab === "locks" && "Device Bonds & Hardware Locks"}
+              {activeTab === "transfers" && "Rebind Transfer Approval Queue"}
+              {activeTab === "notifications" && "Push Notification Studio"}
+              {activeTab === "versions" && "Force-Update & Version Gate"}
+              {activeTab === "shield" && "CDN Shield & Rate Limiting Engine"}
+            </h1>
+            <div style={{ fontSize: "0.72rem", color: "var(--text-sub)", marginTop: "2px" }}>
+              VividWake Android Engine • Production Environment
+            </div>
           </div>
-        </div>
 
-        <div className="header-actions-strip">
-          <button
-            onClick={() => fetchAnalytics(password, page, filterType, selectedDate, searchQuery, sortBy)}
-            className="btn-header"
-            title="Refresh Data"
-            disabled={loading}
-          >
-            <FiRefreshCw size={12} className={loading ? "spin-anim" : ""} />
-            <span>{loading ? "Refreshing..." : "Refresh"}</span>
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            {activeTab === "sessions" && (
+              <>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", background: "rgba(13, 17, 24, 0.6)", padding: "4px 8px", borderRadius: "6px", border: "1px solid rgba(255, 255, 255, 0.08)" }}>
+                  <FiCalendar size={12} color="var(--accent-mint)" />
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => {
+                      setSelectedDate(e.target.value);
+                      fetchAnalytics(password, 1, filterType, e.target.value, searchQuery, sortBy);
+                    }}
+                    style={{ background: "transparent", border: "none", color: "#ffffff", fontSize: "0.75rem", outline: "none", cursor: "pointer" }}
+                  />
+                </div>
 
-          <button onClick={handleLogout} className="btn-header btn-lock" title="Lock Dashboard">
-            <FiLogOut size={12} />
-            <span>Lock</span>
-          </button>
-        </div>
-      </header>
+                <button
+                  onClick={() => fetchAnalytics(password, page, filterType, selectedDate, searchQuery, sortBy)}
+                  className="btn-header"
+                  title="Refresh Data"
+                  disabled={loading}
+                >
+                  <FiRefreshCw size={12} className={loading ? "spin-anim" : ""} />
+                  <span>{loading ? "Refreshing..." : "Refresh"}</span>
+                </button>
+              </>
+            )}
 
-      {/* Overview KPIs Strip */}
-      <section className="overview-kpis">
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.72rem", color: "var(--accent-mint)", background: "rgba(45, 212, 191, 0.08)", padding: "4px 8px", borderRadius: "6px", border: "1px solid rgba(45, 212, 191, 0.2)" }}>
+              <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--accent-mint)" }} />
+              <span>Online</span>
+            </div>
+          </div>
+        </header>
+
+        {/* Stage Body Container */}
+        <div className="stage-body-container">
+          {activeTab === "sessions" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem", width: "100%", height: "100%" }}>
+              {/* Overview KPIs Strip */}
+              <section className="overview-kpis">
         <div className="kpi-stat-box">
           <div className="kpi-icon-pill">
             <FiSmartphone size={16} />
@@ -1317,7 +1377,31 @@ export default function AdminAnalyticsDashboard() {
               </div>
             </>
           )}
-        </section>
+                </section>
+              </main>
+            </div>
+          )}
+
+          {activeTab === "locks" && (
+            <DeviceLocksTab password={password} onActionSuccess={fetchPendingTransfers} />
+          )}
+
+          {activeTab === "transfers" && (
+            <TransfersTab password={password} onActionSuccess={fetchPendingTransfers} />
+          )}
+
+          {activeTab === "notifications" && (
+            <NotificationsTab password={password} />
+          )}
+
+          {activeTab === "versions" && (
+            <VersionGateTab password={password} />
+          )}
+
+          {activeTab === "shield" && (
+            <SecurityShieldTab password={password} />
+          )}
+        </div>
       </main>
     </div>
   );
