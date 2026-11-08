@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import Sidebar from "@/components/Sidebar";
 import DeviceLocksTab from "@/components/DeviceLocksTab";
 import TransfersTab from "@/components/TransfersTab";
+import WallpapersTab from "@/components/WallpapersTab";
 import NotificationsTab from "@/components/NotificationsTab";
 import VersionGateTab from "@/components/VersionGateTab";
 import SecurityShieldTab from "@/components/SecurityShieldTab";
@@ -1388,6 +1389,10 @@ export default function AdminAnalyticsDashboard() {
 
           {activeTab === "transfers" && (
             <TransfersTab password={password} onActionSuccess={fetchPendingTransfers} />
+          )}
+
+          {activeTab === "wallpapers" && (
+            <WallpapersTab password={password} />
           )}
 
           {activeTab === "notifications" && (

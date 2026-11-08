@@ -41,13 +41,16 @@ export async function POST(request) {
 
     let query = {};
     if (id) query._id = id;
+    else if (email && (action === "approve-transfer" || action === "reject-transfer")) {
+      query = { boundEmail: email.trim().toLowerCase(), "transferRequest.status": "PENDING" };
+    }
     else if (email) query.boundEmail = email.trim().toLowerCase();
     else if (hardwareFingerprint) query.hardwareFingerprint = hardwareFingerprint.trim();
     else {
       return NextResponse.json({ success: false, error: "Missing id, email, or hardwareFingerprint" }, { status: 400 });
     }
 
-    const lock = await DeviceLock.findOne(query);
+    const lock = await DeviceLock.findOne(query).sort({ updatedAt: -1 });
     if (!lock) {
       return NextResponse.json({ success: false, error: "Lock record not found" }, { status: 404 });
     }

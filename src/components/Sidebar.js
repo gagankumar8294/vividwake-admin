@@ -8,6 +8,7 @@ import {
   FiBell,
   FiDownload,
   FiShield,
+  FiImage,
   FiLogOut
 } from "react-icons/fi";
 
@@ -21,6 +22,7 @@ export default function Sidebar({ activeTab, onSelectTab, pendingTransfersCount 
       icon: FiSmartphone,
       badge: pendingTransfersCount > 0 ? pendingTransfersCount : null
     },
+    { id: "wallpapers", label: "Wallpaper Access", icon: FiImage },
     { id: "notifications", label: "Push Notifications", icon: FiBell },
     { id: "versions", label: "Force-Update Gate", icon: FiDownload },
     { id: "shield", label: "CDN Bot Shield", icon: FiShield }
