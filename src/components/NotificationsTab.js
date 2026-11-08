@@ -10,7 +10,12 @@ import {
   FiMail,
   FiCheckCircle,
   FiClock,
-  FiRefreshCw
+  FiRefreshCw,
+  FiEye,
+  FiMousePointer,
+  FiActivity,
+  FiTrendingUp,
+  FiInbox
 } from "react-icons/fi";
 
 export default function NotificationsTab({ password }) {
@@ -23,6 +28,13 @@ export default function NotificationsTab({ password }) {
 
   const [sending, setSending] = useState(false);
   const [history, setHistory] = useState([]);
+  const [systemNotifications, setSystemNotifications] = useState([]);
+  const [analytics, setAnalytics] = useState({
+    totalModalOpens: 0,
+    uniqueOpenersCount: 0,
+    totalClicks: 0,
+    overallCtr: "0.0%"
+  });
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
 
@@ -35,6 +47,10 @@ export default function NotificationsTab({ password }) {
       const data = await res.json();
       if (data.success) {
         setHistory(data.notifications || []);
+        setSystemNotifications(data.systemNotifications || []);
+        if (data.analytics) {
+          setAnalytics(data.analytics);
+        }
       }
     } catch (e) {
       console.error("Failed to load notifications history:", e);
@@ -102,18 +118,80 @@ export default function NotificationsTab({ password }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
         <div>
           <h2 style={{ fontSize: "1.25rem", fontWeight: "700", color: "#ffffff", display: "flex", alignItems: "center", gap: "8px" }}>
-            <FiBell color="var(--accent-mint)" /> Push Notification Studio (FCM)
+            <FiBell color="var(--accent-mint)" /> Push Notification Studio & Engagement Analytics
           </h2>
           <p style={{ fontSize: "0.8rem", color: "var(--text-sub)", marginTop: "2px" }}>
-            Admin-controlled manual push dispatching with zero-conflict Android delivery
+            Admin-controlled notification dispatching with real-time open and click telemetry
           </p>
         </div>
 
-        {successMsg && (
-          <span style={{ fontSize: "0.78rem", color: "var(--accent-mint)", background: "rgba(45, 212, 191, 0.1)", padding: "4px 10px", borderRadius: "6px", border: "1px solid rgba(45, 212, 191, 0.25)" }}>
-            {successMsg}
-          </span>
-        )}
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <button
+            onClick={fetchHistory}
+            disabled={loadingHistory}
+            className="btn-header"
+            style={{ fontSize: "0.78rem", padding: "6px 12px", display: "flex", alignItems: "center", gap: "6px" }}
+          >
+            <FiRefreshCw className={loadingHistory ? "spin" : ""} size={12} />
+            Refresh Analytics
+          </button>
+          {successMsg && (
+            <span style={{ fontSize: "0.78rem", color: "var(--accent-mint)", background: "rgba(45, 212, 191, 0.1)", padding: "4px 10px", borderRadius: "6px", border: "1px solid rgba(45, 212, 191, 0.25)" }}>
+              {successMsg}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Engagement Analytics KPI Cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
+        {/* Card 1: Dispatched */}
+        <div className="mission-card" style={{ padding: "14px", display: "flex", alignItems: "center", gap: "12px" }}>
+          <div style={{ width: "42px", height: "42px", borderRadius: "10px", background: "rgba(99, 102, 241, 0.15)", border: "1px solid rgba(99, 102, 241, 0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <FiSend size={18} color="#818cf8" />
+          </div>
+          <div>
+            <div style={{ fontSize: "0.72rem", color: "var(--text-sub)", textTransform: "uppercase", fontWeight: "600" }}>Total Dispatched</div>
+            <div style={{ fontSize: "1.25rem", fontWeight: "700", color: "#ffffff" }}>{history.length}</div>
+            <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Broadcast campaigns</div>
+          </div>
+        </div>
+
+        {/* Card 2: Opens */}
+        <div className="mission-card" style={{ padding: "14px", display: "flex", alignItems: "center", gap: "12px" }}>
+          <div style={{ width: "42px", height: "42px", borderRadius: "10px", background: "rgba(45, 212, 191, 0.15)", border: "1px solid rgba(45, 212, 191, 0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <FiEye size={18} color="var(--accent-mint)" />
+          </div>
+          <div>
+            <div style={{ fontSize: "0.72rem", color: "var(--text-sub)", textTransform: "uppercase", fontWeight: "600" }}>In-App Modal Opens</div>
+            <div style={{ fontSize: "1.25rem", fontWeight: "700", color: "#ffffff" }}>{analytics.totalModalOpens}</div>
+            <div style={{ fontSize: "0.7rem", color: "var(--accent-mint)" }}>{analytics.uniqueOpenersCount} unique devices</div>
+          </div>
+        </div>
+
+        {/* Card 3: Clicks */}
+        <div className="mission-card" style={{ padding: "14px", display: "flex", alignItems: "center", gap: "12px" }}>
+          <div style={{ width: "42px", height: "42px", borderRadius: "10px", background: "rgba(244, 63, 94, 0.15)", border: "1px solid rgba(244, 63, 94, 0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <FiMousePointer size={18} color="#fb7185" />
+          </div>
+          <div>
+            <div style={{ fontSize: "0.72rem", color: "var(--text-sub)", textTransform: "uppercase", fontWeight: "600" }}>Notification Clicks</div>
+            <div style={{ fontSize: "1.25rem", fontWeight: "700", color: "#ffffff" }}>{analytics.totalClicks}</div>
+            <div style={{ fontSize: "0.7rem", color: "#fb7185" }}>Direct wallpaper taps</div>
+          </div>
+        </div>
+
+        {/* Card 4: CTR */}
+        <div className="mission-card" style={{ padding: "14px", display: "flex", alignItems: "center", gap: "12px" }}>
+          <div style={{ width: "42px", height: "42px", borderRadius: "10px", background: "rgba(168, 85, 247, 0.15)", border: "1px solid rgba(168, 85, 247, 0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <FiTrendingUp size={18} color="#c084fc" />
+          </div>
+          <div>
+            <div style={{ fontSize: "0.72rem", color: "var(--text-sub)", textTransform: "uppercase", fontWeight: "600" }}>Click-Through Rate (CTR)</div>
+            <div style={{ fontSize: "1.25rem", fontWeight: "700", color: "#ffffff" }}>{analytics.overallCtr}</div>
+            <div style={{ fontSize: "0.7rem", color: "#c084fc" }}>Clicks / Modal Opens</div>
+          </div>
+        </div>
       </div>
 
       {/* Main Studio Grid: Form (Left) & Phone Preview (Right) */}
@@ -273,7 +351,7 @@ export default function NotificationsTab({ password }) {
               </label>
               <input
                 type="text"
-                placeholder="e.g. lucia or stormborn_viking"
+                placeholder="e.g. wp_game_character_01 or cyberpunk_neon_city_4k"
                 value={wallpaperId}
                 onChange={(e) => setWallpaperId(e.target.value)}
                 style={{
@@ -359,36 +437,42 @@ export default function NotificationsTab({ password }) {
           </div>
 
           <div style={{ fontSize: "0.72rem", color: "var(--text-sub)", marginTop: "1rem", lineHeight: "1.4" }}>
-            💡 <strong>Safe Delivery Guarantee:</strong> All notifications use standard Android high-priority notification channels (`vividwake_wallpapers_channel`) with zero collision or layout distortion against system lock screens.
+            💡 <strong>Visual Dimming Enabled:</strong> In-app notifications automatically dim upon tap by the user, while unread messages remain bright with an alert badge until clicked.
           </div>
         </div>
       </div>
 
-      {/* Broadcast History */}
+      {/* Broadcast History & Engagement Telemetry */}
       <div className="mission-card">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h3 style={{ fontSize: "0.95rem", fontWeight: "700", color: "#ffffff", display: "flex", alignItems: "center", gap: "6px" }}>
-            <FiClock color="var(--accent-mint)" /> Notification Broadcast History ({history.length})
-          </h3>
+          <div>
+            <h3 style={{ fontSize: "0.95rem", fontWeight: "700", color: "#ffffff", display: "flex", alignItems: "center", gap: "6px" }}>
+              <FiClock color="var(--accent-mint)" /> Notification Broadcast History & Click Telemetry ({history.length})
+            </h3>
+            <p style={{ fontSize: "0.75rem", color: "var(--text-sub)", marginTop: "2px" }}>
+              Track real-time delivery and click engagement across all sent broadcast notifications
+            </p>
+          </div>
           <button onClick={fetchHistory} disabled={loadingHistory} className="btn-header" style={{ fontSize: "0.74rem", padding: "4px 8px" }}>
             <FiRefreshCw className={loadingHistory ? "spin" : ""} size={10} />
           </button>
         </div>
 
-        <div style={{ overflowX: "auto" }}>
+        <div style={{ overflowX: "auto", marginTop: "0.75rem" }}>
           <table className="glass-table">
             <thead>
               <tr>
                 <th>Title & Message</th>
                 <th>Target</th>
                 <th>Channel</th>
+                <th>Engagement / Clicks</th>
                 <th>Sent At</th>
               </tr>
             </thead>
             <tbody>
               {history.length === 0 ? (
                 <tr>
-                  <td colSpan="4" style={{ textAlign: "center", padding: "2rem", color: "var(--text-sub)" }}>
+                  <td colSpan="5" style={{ textAlign: "center", padding: "2rem", color: "var(--text-sub)" }}>
                     No push notifications dispatched yet.
                   </td>
                 </tr>
@@ -397,7 +481,12 @@ export default function NotificationsTab({ password }) {
                   <tr key={i}>
                     <td>
                       <div style={{ fontWeight: "600", color: "#ffffff", fontSize: "0.82rem" }}>{h.title}</div>
-                      <div style={{ fontSize: "0.75rem", color: "var(--text-sub)" }}>{h.body}</div>
+                      <div style={{ fontSize: "0.75rem", color: "var(--text-sub)", marginTop: "2px" }}>{h.body}</div>
+                      {h.wallpaperId && (
+                        <span style={{ fontSize: "0.68rem", color: "var(--accent-mint)", background: "rgba(45, 212, 191, 0.08)", padding: "1px 6px", borderRadius: "4px", display: "inline-block", marginTop: "4px" }}>
+                          Deep-link: {h.wallpaperId}
+                        </span>
+                      )}
                     </td>
                     <td>
                       <span className="status-pill" style={{ background: "rgba(255,255,255,0.06)", color: "var(--text-muted)" }}>
@@ -406,6 +495,42 @@ export default function NotificationsTab({ password }) {
                     </td>
                     <td style={{ fontSize: "0.75rem", color: "var(--text-sub)" }}>
                       {h.deliveryType || "both"}
+                    </td>
+                    <td>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "5px",
+                            padding: "3px 8px",
+                            borderRadius: "6px",
+                            fontSize: "0.75rem",
+                            fontWeight: "700",
+                            background: (h.clicks || 0) > 0 ? "rgba(45, 212, 191, 0.15)" : "rgba(255, 255, 255, 0.05)",
+                            color: (h.clicks || 0) > 0 ? "var(--accent-mint)" : "var(--text-muted)",
+                            border: (h.clicks || 0) > 0 ? "1px solid rgba(45, 212, 191, 0.3)" : "1px solid rgba(255, 255, 255, 0.08)",
+                            width: "fit-content"
+                          }}
+                        >
+                          <FiMousePointer size={11} /> {h.clicks || 0} clicks
+                        </span>
+                        {(h.uniqueClickers || 0) > 0 && (
+                          <span style={{ fontSize: "0.68rem", color: "var(--text-sub)" }}>
+                            👥 {h.uniqueClickers} unique device{h.uniqueClickers > 1 ? "s" : ""}
+                          </span>
+                        )}
+                        {h.uniqueUsers && h.uniqueUsers.length > 0 && (
+                          <span style={{ fontSize: "0.68rem", color: "var(--accent-mint)" }}>
+                            👤 {h.uniqueUsers.join(", ")}
+                          </span>
+                        )}
+                        {h.lastClickedAt && (
+                          <span style={{ fontSize: "0.65rem", color: "var(--text-muted)" }}>
+                            Last tap: {new Date(h.lastClickedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td style={{ fontSize: "0.75rem", color: "var(--text-sub)" }}>
                       {h.sentAt ? new Date(h.sentAt).toLocaleString() : "Recently"}
@@ -417,6 +542,80 @@ export default function NotificationsTab({ password }) {
           </table>
         </div>
       </div>
+
+      {/* System In-App Notification Clicks (e.g., Welcome drop, Featured wallpapers) */}
+      {systemNotifications.length > 0 && (
+        <div className="mission-card" style={{ border: "1px solid rgba(168, 85, 247, 0.2)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <h3 style={{ fontSize: "0.95rem", fontWeight: "700", color: "#ffffff", display: "flex", alignItems: "center", gap: "6px" }}>
+                <FiInbox color="#c084fc" /> In-App Default Notifications Engagement ({systemNotifications.length})
+              </h3>
+              <p style={{ fontSize: "0.75rem", color: "var(--text-sub)", marginTop: "2px" }}>
+                User interaction on pre-loaded welcome drops and automated in-app announcements
+              </p>
+            </div>
+          </div>
+
+          <div style={{ overflowX: "auto", marginTop: "0.75rem" }}>
+            <table className="glass-table">
+              <thead>
+                <tr>
+                  <th>Notification Title</th>
+                  <th>Deep-Link</th>
+                  <th>Engagement / Clicks</th>
+                  <th>Last Clicked</th>
+                </tr>
+              </thead>
+              <tbody>
+                {systemNotifications.map((s, idx) => (
+                  <tr key={idx}>
+                    <td>
+                      <div style={{ fontWeight: "600", color: "#ffffff", fontSize: "0.82rem" }}>{s.title}</div>
+                      <div style={{ fontSize: "0.7rem", color: "var(--text-sub)" }}>ID: {s.id}</div>
+                    </td>
+                    <td>
+                      {s.wallpaperId ? (
+                        <span style={{ fontSize: "0.72rem", color: "var(--accent-mint)" }}>
+                          #{s.wallpaperId}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>None</span>
+                      )}
+                    </td>
+                    <td>
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "5px",
+                          padding: "3px 8px",
+                          borderRadius: "6px",
+                          fontSize: "0.75rem",
+                          fontWeight: "700",
+                          background: "rgba(168, 85, 247, 0.15)",
+                          color: "#c084fc",
+                          border: "1px solid rgba(168, 85, 247, 0.3)"
+                        }}
+                      >
+                        <FiMousePointer size={11} /> {s.clicks} clicks ({s.uniqueClickers} devices)
+                      </span>
+                      {s.uniqueUsers && s.uniqueUsers.length > 0 && (
+                        <div style={{ fontSize: "0.68rem", color: "var(--text-sub)", marginTop: "2px" }}>
+                          👤 {s.uniqueUsers.join(", ")}
+                        </div>
+                      )}
+                    </td>
+                    <td style={{ fontSize: "0.75rem", color: "var(--text-sub)" }}>
+                      {s.lastClickedAt ? new Date(s.lastClickedAt).toLocaleString() : "Recently"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
