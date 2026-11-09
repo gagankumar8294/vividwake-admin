@@ -20,6 +20,10 @@ const wallpaperAccessSchema = new mongoose.Schema(
       default: "General",
       index: true
     },
+    subCategory: {
+      type: String,
+      default: ""
+    },
     description: {
       type: String,
       default: ""
