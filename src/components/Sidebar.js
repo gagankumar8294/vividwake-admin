@@ -32,8 +32,8 @@ export default function Sidebar({ activeTab, onSelectTab, pendingTransfersCount 
     <aside className="admin-sidebar">
       {/* Brand Header */}
       <div className="admin-sidebar-header">
-        <div className="sidebar-brand-box">
-          <FiActivity size={20} />
+        <div className="sidebar-brand-box" style={{ display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", padding: "2px" }}>
+          <img src="/logo.png" alt="VividWake Logo" style={{ width: "22px", height: "22px", objectFit: "contain" }} />
         </div>
         <div>
           <div style={{ fontSize: "1rem", fontWeight: "800", color: "#ffffff", letterSpacing: "-0.01em" }}>
