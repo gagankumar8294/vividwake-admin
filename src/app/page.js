@@ -5,6 +5,7 @@ import Sidebar from "@/components/Sidebar";
 import DeviceLocksTab from "@/components/DeviceLocksTab";
 import TransfersTab from "@/components/TransfersTab";
 import WallpapersTab from "@/components/WallpapersTab";
+import CatalogManagerTab from "@/components/CatalogManagerTab";
 import NotificationsTab from "@/components/NotificationsTab";
 import VersionGateTab from "@/components/VersionGateTab";
 import SecurityShieldTab from "@/components/SecurityShieldTab";
@@ -499,6 +500,8 @@ export default function AdminAnalyticsDashboard() {
               {activeTab === "sessions" && "Live Telemetry & User Journeys"}
               {activeTab === "locks" && "Device Bonds & Hardware Locks"}
               {activeTab === "transfers" && "Rebind Transfer Approval Queue"}
+              {activeTab === "catalog" && "Wallpaper Catalog Studio & Sync"}
+              {activeTab === "wallpapers" && "VIP Wallpaper Access & User Gating"}
               {activeTab === "notifications" && "Push Notification Studio"}
               {activeTab === "versions" && "Force-Update & Version Gate"}
               {activeTab === "shield" && "CDN Shield & Rate Limiting Engine"}
@@ -1389,6 +1392,10 @@ export default function AdminAnalyticsDashboard() {
 
           {activeTab === "transfers" && (
             <TransfersTab password={password} onActionSuccess={fetchPendingTransfers} />
+          )}
+
+          {activeTab === "catalog" && (
+            <CatalogManagerTab password={password} />
           )}
 
           {activeTab === "wallpapers" && (

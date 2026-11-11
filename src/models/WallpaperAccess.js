@@ -28,6 +28,10 @@ const wallpaperAccessSchema = new mongoose.Schema(
       type: String,
       default: ""
     },
+    tags: {
+      type: [String],
+      default: []
+    },
     thumbUrl: {
       type: String,
       default: ""
@@ -48,7 +52,23 @@ const wallpaperAccessSchema = new mongoose.Schema(
       type: Number,
       default: 0
     },
+    width: {
+      type: Number,
+      default: 1080
+    },
+    height: {
+      type: Number,
+      default: 1920
+    },
+    version: {
+      type: Number,
+      default: 1
+    },
     isFeatured: {
+      type: Boolean,
+      default: false
+    },
+    isVipOnly: {
       type: Boolean,
       default: false
     },
