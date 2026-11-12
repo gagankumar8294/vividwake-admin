@@ -9,6 +9,7 @@ import CatalogManagerTab from "@/components/CatalogManagerTab";
 import NotificationsTab from "@/components/NotificationsTab";
 import VersionGateTab from "@/components/VersionGateTab";
 import SecurityShieldTab from "@/components/SecurityShieldTab";
+import InstallGuidePage from "@/components/InstallGuidePage";
 import {
   FiUsers,
   FiUser,
@@ -505,6 +506,7 @@ export default function AdminAnalyticsDashboard() {
               {activeTab === "notifications" && "Push Notification Studio"}
               {activeTab === "versions" && "Force-Update & Version Gate"}
               {activeTab === "shield" && "CDN Shield & Rate Limiting Engine"}
+              {activeTab === "guide" && "Product Launch, Sideload & Wallpaper Setup Guide"}
             </h1>
             <div style={{ fontSize: "0.72rem", color: "var(--text-sub)", marginTop: "2px" }}>
               VividWake Android Engine • Production Environment
@@ -512,6 +514,27 @@ export default function AdminAnalyticsDashboard() {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <a
+              href="/download"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                background: "rgba(5, 150, 105, 0.2)",
+                color: "#2dd4bf",
+                border: "1px solid rgba(45, 212, 191, 0.3)",
+                padding: "6px 12px",
+                borderRadius: "6px",
+                fontSize: "0.78rem",
+                fontWeight: "700",
+                textDecoration: "none"
+              }}
+            >
+              <FiGlobe size={13} />
+              <span>Public Download Page ↗</span>
+            </a>
             {activeTab === "sessions" && (
               <>
                 <div style={{ display: "flex", alignItems: "center", gap: "6px", background: "rgba(13, 17, 24, 0.6)", padding: "4px 8px", borderRadius: "6px", border: "1px solid rgba(255, 255, 255, 0.08)" }}>
@@ -1412,6 +1435,12 @@ export default function AdminAnalyticsDashboard() {
 
           {activeTab === "shield" && (
             <SecurityShieldTab password={password} />
+          )}
+
+          {activeTab === "guide" && (
+            <div style={{ marginTop: "1rem", borderRadius: "16px", overflow: "hidden", border: "1px solid rgba(255,255,255,0.08)" }}>
+              <InstallGuidePage />
+            </div>
           )}
         </div>
       </main>

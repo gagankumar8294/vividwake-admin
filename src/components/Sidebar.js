@@ -27,7 +27,8 @@ export default function Sidebar({ activeTab, onSelectTab, pendingTransfersCount 
     { id: "wallpapers", label: "Wallpaper Access", icon: FiImage },
     { id: "notifications", label: "Push Notifications", icon: FiBell },
     { id: "versions", label: "Force-Update Gate", icon: FiDownload },
-    { id: "shield", label: "CDN Bot Shield", icon: FiShield }
+    { id: "shield", label: "CDN Bot Shield", icon: FiShield },
+    { id: "guide", label: "Product Launch & Guide", icon: FiSmartphone }
   ];
 
   return (
