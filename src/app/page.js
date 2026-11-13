@@ -105,12 +105,18 @@ export default function AdminAnalyticsDashboard() {
   };
 
   const handleDeviceAction = async (action, emailToTarget, extraData = {}) => {
-    if (!emailToTarget) return;
+    if (!emailToTarget && !extraData.hardwareFingerprint) return;
     if (action === "ban" && !confirm(`🚨 ACTIVATE REMOTE KILL SWITCH?\n\nThis will immediately ban ${emailToTarget}, reset their wallpaper to default, and block app access.`)) {
       return;
     }
     if (action === "unlock" && !confirm(`Release 1-to-1 device lock for ${emailToTarget}? This will allow the user to bind a new phone.`)) {
       return;
+    }
+    if (action === "purge-user") {
+      const targetName = emailToTarget || extraData.hardwareFingerprint || "User";
+      if (!confirm(`⚠️ PERMANENT USER & DEVICE PURGE\n\nEntirely delete all database records for "${targetName}"?\n\nThis will permanently delete:\n• 1-to-1 Phone Hardware Lock\n• All session analytics & telemetry logs\n• Permissions & VIP status\n\nThe user/device will be able to register fresh from the start as a new customer.\n\nProceed with permanent deletion?`)) {
+        return;
+      }
     }
     setUnlocking(true);
     setUnlockMessage("");
@@ -127,6 +133,9 @@ export default function AdminAnalyticsDashboard() {
       if (data.success) {
         setUnlockMessage(data.message || "Command executed successfully.");
         setTimeout(() => setUnlockMessage(""), 5000);
+        if (action === "purge-user") {
+          setSelectedSession(null);
+        }
         fetchSessions(page, false);
       } else {
         alert("Action failed: " + (data.error || "Unknown error"));
@@ -1099,6 +1108,35 @@ export default function AdminAnalyticsDashboard() {
                             title="Remote Kill Switch — Instantly disable app & revoke lock screen"
                           >
                             Kill Switch
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleDeviceAction("purge-user", selectedSession.email, {
+                                hardwareFingerprint: selectedSession.deviceId,
+                                userId: selectedSession.userId
+                              })
+                            }
+                            disabled={unlocking}
+                            style={{
+                              fontSize: "0.72rem",
+                              fontWeight: "700",
+                              background: "rgba(239, 68, 68, 0.15)",
+                              color: "#ef4444",
+                              border: "1px solid rgba(239, 68, 68, 0.35)",
+                              padding: "2px 8px",
+                              borderRadius: "5px",
+                              cursor: "pointer",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px",
+                              transition: "all 0.15s"
+                            }}
+                            title="Completely delete user and locks from DB so they can re-register from scratch"
+                          >
+                            <FiTrash2 size={11} />
+                            Purge User
                           </button>
                         </div>
                       )}

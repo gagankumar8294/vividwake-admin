@@ -11,7 +11,9 @@ import {
   FiCheckCircle,
   FiSmartphone,
   FiAward,
-  FiUser
+  FiUser,
+  FiTrash2,
+  FiX
 } from "react-icons/fi";
 
 export default function DeviceLocksTab({ password, onActionSuccess }) {
@@ -21,6 +23,9 @@ export default function DeviceLocksTab({ password, onActionSuccess }) {
   const [filter, setFilter] = useState("ALL");
   const [processingId, setProcessingId] = useState(null);
   const [statusMsg, setStatusMsg] = useState("");
+  const [showPurgeModal, setShowPurgeModal] = useState(false);
+  const [purgeInput, setPurgeInput] = useState("");
+  const [purgingDirect, setPurgingDirect] = useState(false);
 
   const fetchLocks = async () => {
     setLoading(true);
@@ -51,6 +56,12 @@ export default function DeviceLocksTab({ password, onActionSuccess }) {
     if (action === "unlock" && !confirm(`Release 1-to-1 device bond for ${email}?\nThis frees the user to bind a new physical phone.`)) {
       return;
     }
+    if (action === "purge-user") {
+      const confirmed = confirm(
+        `⚠️ PERMANENT USER & HARDWARE PURGE\n\nEntirely delete all database records for:\nEmail: ${email || "None"}\nDevice: ${lock.hardwareFingerprint || "Unknown"}\n\nThis will permanently delete:\n• 1-to-1 Phone Hardware Lock\n• All session analytics & telemetry logs\n• VIP and wallpaper access rights\n\nThe user will be able to register fresh from the start as a brand-new customer.\n\nProceed with permanent deletion?`
+      );
+      if (!confirmed) return;
+    }
 
     setProcessingId(lock._id);
     setStatusMsg("");
@@ -61,12 +72,19 @@ export default function DeviceLocksTab({ password, onActionSuccess }) {
           "Content-Type": "application/json",
           "x-admin-authorization": password
         },
-        body: JSON.stringify({ action, id: lock._id, email, ...extra })
+        body: JSON.stringify({
+          action,
+          id: lock._id,
+          email,
+          hardwareFingerprint: lock.hardwareFingerprint,
+          userId: lock.boundUserId,
+          ...extra
+        })
       });
       const data = await res.json();
       if (data.success) {
         setStatusMsg(data.message || "Command executed.");
-        setTimeout(() => setStatusMsg(""), 4000);
+        setTimeout(() => setStatusMsg(""), 5000);
         fetchLocks();
         if (onActionSuccess) onActionSuccess();
       } else {
@@ -76,6 +94,51 @@ export default function DeviceLocksTab({ password, onActionSuccess }) {
       alert("Error: " + e.message);
     } finally {
       setProcessingId(null);
+    }
+  };
+
+  const handleDirectPurge = async (e) => {
+    if (e) e.preventDefault();
+    const query = purgeInput.trim();
+    if (!query) return;
+
+    const confirmed = confirm(
+      `⚠️ PERMANENT USER & DEVICE PURGE\n\nPurge all database records matching:\n"${query}"\n\nThis will delete device locks and session logs so this account/device can register fresh from the start.\n\nAre you absolutely sure?`
+    );
+    if (!confirmed) return;
+
+    setPurgingDirect(true);
+    setStatusMsg("");
+    try {
+      const payload = {
+        action: "purge-user",
+        email: query.includes("@") ? query : undefined,
+        hardwareFingerprint: !query.includes("@") ? query : undefined
+      };
+
+      const res = await fetch("/api/admin/locks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-authorization": password
+        },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        setStatusMsg(data.message || "User purged successfully.");
+        setTimeout(() => setStatusMsg(""), 5000);
+        setShowPurgeModal(false);
+        setPurgeInput("");
+        fetchLocks();
+        if (onActionSuccess) onActionSuccess();
+      } else {
+        alert("Purge failed: " + (data.error || "Unknown error"));
+      }
+    } catch (err) {
+      alert("Error during purge: " + err.message);
+    } finally {
+      setPurgingDirect(false);
     }
   };
 
@@ -116,6 +179,26 @@ export default function DeviceLocksTab({ password, onActionSuccess }) {
               {statusMsg}
             </span>
           )}
+          <button
+            onClick={() => setShowPurgeModal(true)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              fontSize: "0.8rem",
+              padding: "6px 12px",
+              borderRadius: "6px",
+              background: "rgba(239, 68, 68, 0.12)",
+              color: "#f87171",
+              border: "1px solid rgba(239, 68, 68, 0.3)",
+              fontWeight: "600",
+              cursor: "pointer"
+            }}
+            title="Purge user and device from DB by Email or Hardware Fingerprint"
+          >
+            <FiTrash2 size={13} />
+            <span>Purge User Account</span>
+          </button>
           <button
             onClick={fetchLocks}
             disabled={loading}
@@ -339,6 +422,29 @@ export default function DeviceLocksTab({ password, onActionSuccess }) {
                           >
                             Release
                           </button>
+
+                          {/* Purge / Delete User Completely */}
+                          <button
+                            onClick={() => handleAction("purge-user", lock)}
+                            disabled={isProcessing}
+                            style={{
+                              fontSize: "0.72rem",
+                              fontWeight: "700",
+                              background: "rgba(239, 68, 68, 0.15)",
+                              color: "#ef4444",
+                              border: "1px solid rgba(239, 68, 68, 0.3)",
+                              padding: "4px 8px",
+                              borderRadius: "6px",
+                              cursor: "pointer",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px"
+                            }}
+                            title="Permanently erase user and lock from database so they can re-register from scratch"
+                          >
+                            <FiTrash2 size={11} />
+                            <span>Purge</span>
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -349,6 +455,119 @@ export default function DeviceLocksTab({ password, onActionSuccess }) {
           </table>
         </div>
       </div>
+
+      {/* Manual User & Hardware Purge Modal */}
+      {showPurgeModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0, 0, 0, 0.75)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+            padding: "1rem"
+          }}
+        >
+          <div
+            className="mission-card"
+            style={{
+              width: "100%",
+              maxWidth: "480px",
+              padding: "1.5rem",
+              border: "1px solid rgba(239, 68, 68, 0.35)",
+              boxShadow: "0 20px 40px rgba(0, 0, 0, 0.6)"
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <div style={{ background: "rgba(239, 68, 68, 0.15)", color: "#ef4444", padding: "6px", borderRadius: "8px" }}>
+                  <FiTrash2 size={18} />
+                </div>
+                <h3 style={{ fontSize: "1.05rem", fontWeight: "700", color: "#ffffff", margin: 0 }}>
+                  Purge User Completely
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowPurgeModal(false)}
+                style={{ background: "transparent", border: "none", color: "var(--text-sub)", cursor: "pointer", padding: "4px" }}
+              >
+                <FiX size={18} />
+              </button>
+            </div>
+
+            <p style={{ fontSize: "0.82rem", color: "var(--text-sub)", lineHeight: "1.45", marginBottom: "1.25rem" }}>
+              Enter the target user&apos;s Google Email or Device Hardware Fingerprint. All device bonds, session logs, and permissions will be permanently purged from the database, allowing the user to register fresh from the start.
+            </p>
+
+            <form onSubmit={handleDirectPurge} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+              <div>
+                <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "600", color: "#ffffff", marginBottom: "6px" }}>
+                  Google Email or Hardware Fingerprint
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. user@gmail.com or a1b2c3d4..."
+                  value={purgeInput}
+                  onChange={(e) => setPurgeInput(e.target.value)}
+                  autoFocus
+                  style={{
+                    width: "100%",
+                    padding: "9px 12px",
+                    borderRadius: "8px",
+                    background: "rgba(13, 17, 24, 0.8)",
+                    border: "1px solid rgba(255, 255, 255, 0.15)",
+                    color: "#ffffff",
+                    fontSize: "0.85rem",
+                    outline: "none"
+                  }}
+                />
+              </div>
+
+              <div style={{ background: "rgba(239, 68, 68, 0.08)", border: "1px solid rgba(239, 68, 68, 0.2)", borderRadius: "8px", padding: "10px 12px", fontSize: "0.75rem", color: "#fca5a5" }}>
+                ⚠️ <strong>Warning:</strong> This cannot be undone. All active locks, session flows, and preferences for this account/hardware will be erased immediately.
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "0.5rem" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowPurgeModal(false)}
+                  style={{
+                    padding: "8px 14px",
+                    borderRadius: "6px",
+                    background: "rgba(255, 255, 255, 0.08)",
+                    border: "none",
+                    color: "#ffffff",
+                    fontSize: "0.8rem",
+                    cursor: "pointer"
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!purgeInput.trim() || purgingDirect}
+                  style={{
+                    padding: "8px 16px",
+                    borderRadius: "6px",
+                    background: "#ef4444",
+                    border: "none",
+                    color: "#ffffff",
+                    fontSize: "0.8rem",
+                    fontWeight: "700",
+                    cursor: "pointer",
+                    opacity: !purgeInput.trim() || purgingDirect ? 0.6 : 1
+                  }}
+                >
+                  {purgingDirect ? "Purging..." : "Confirm & Delete Completely"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
