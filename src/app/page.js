@@ -10,6 +10,7 @@ import NotificationsTab from "@/components/NotificationsTab";
 import VersionGateTab from "@/components/VersionGateTab";
 import SecurityShieldTab from "@/components/SecurityShieldTab";
 import InstallGuidePage from "@/components/InstallGuidePage";
+import { useModal } from "@/components/ModalContext";
 import {
   FiUsers,
   FiUser,
@@ -56,6 +57,7 @@ import {
 } from "react-icons/fi";
 
 export default function AdminAnalyticsDashboard() {
+  const { showConfirm, showAlert } = useModal();
   const [password, setPassword] = useState("");
   const [inputPassword, setInputPassword] = useState("");
   const [authError, setAuthError] = useState("");
@@ -106,18 +108,38 @@ export default function AdminAnalyticsDashboard() {
 
   const handleDeviceAction = async (action, emailToTarget, extraData = {}) => {
     if (!emailToTarget && !extraData.hardwareFingerprint) return;
-    if (action === "ban" && !confirm(`🚨 ACTIVATE REMOTE KILL SWITCH?\n\nThis will immediately ban ${emailToTarget}, reset their wallpaper to default, and block app access.`)) {
-      return;
+
+    if (action === "ban") {
+      const ok = await showConfirm({
+        title: "Activate Remote Kill Switch",
+        message: `Immediately ban ${emailToTarget}?\n\nThis will reset their wallpaper to default, terminate lock screen playback, and revoke mobile app access.`,
+        confirmText: "Activate Kill Switch",
+        variant: "danger"
+      });
+      if (!ok) return;
     }
-    if (action === "unlock" && !confirm(`Release 1-to-1 device lock for ${emailToTarget}? This will allow the user to bind a new phone.`)) {
-      return;
+
+    if (action === "unlock") {
+      const ok = await showConfirm({
+        title: "Release 1-to-1 Device Bond",
+        message: `Release hardware lock for ${emailToTarget}?\n\nThis unbinds the physical phone and allows the user to link a new device.`,
+        confirmText: "Release Lock",
+        variant: "warning"
+      });
+      if (!ok) return;
     }
+
     if (action === "purge-user") {
       const targetName = emailToTarget || extraData.hardwareFingerprint || "User";
-      if (!confirm(`⚠️ PERMANENT USER & DEVICE PURGE\n\nEntirely delete all database records for "${targetName}"?\n\nThis will permanently delete:\n• 1-to-1 Phone Hardware Lock\n• All session analytics & telemetry logs\n• Permissions & VIP status\n\nThe user/device will be able to register fresh from the start as a new customer.\n\nProceed with permanent deletion?`)) {
-        return;
-      }
+      const ok = await showConfirm({
+        title: "Permanent User & Device Purge",
+        message: `Entirely delete all database records for "${targetName}"?\n\nThis will permanently delete:\n• 1-to-1 Phone Hardware Lock\n• All session analytics & telemetry logs\n• Permissions & VIP status\n\nThe user/device will be able to register fresh from the start as a new customer.`,
+        confirmText: "Delete Permanently",
+        variant: "danger"
+      });
+      if (!ok) return;
     }
+
     setUnlocking(true);
     setUnlockMessage("");
     try {
@@ -138,10 +160,18 @@ export default function AdminAnalyticsDashboard() {
         }
         fetchSessions(page, false);
       } else {
-        alert("Action failed: " + (data.error || "Unknown error"));
+        await showAlert({
+          title: "Action Failed",
+          message: data.error || "Unknown error occurred",
+          variant: "danger"
+        });
       }
     } catch (e) {
-      alert("Error contacting lock API: " + e.message);
+      await showAlert({
+        title: "API Error",
+        message: "Error contacting lock API: " + e.message,
+        variant: "danger"
+      });
     } finally {
       setUnlocking(false);
     }
@@ -153,14 +183,21 @@ export default function AdminAnalyticsDashboard() {
     selectedSessionIdRef.current = selectedSession?.sessionId || null;
   }, [selectedSession]);
 
-  // Check saved password on mount
+  // Session-only Auth: Do NOT persist across window closes
+  // Every time the user closes the browser/tab, they must re-enter the password
   useEffect(() => {
-    const saved = localStorage.getItem("vividwake_admin_pw");
-    if (saved) {
-      setPassword(saved);
-      setIsAuthenticated(true);
-      fetchPendingTransfers(saved);
-    }
+    try {
+      localStorage.removeItem("vividwake_admin_pw");
+    } catch (_e) {}
+
+    try {
+      const sessionSaved = sessionStorage.getItem("vividwake_admin_session_pw");
+      if (sessionSaved === "romeoPistol") {
+        setPassword("romeoPistol");
+        setIsAuthenticated(true);
+        fetchPendingTransfers("romeoPistol");
+      }
+    } catch (_e) {}
   }, []);
 
   // Last 7 days quick-pills
@@ -227,7 +264,10 @@ export default function AdminAnalyticsDashboard() {
       } else {
         if (res.status === 401) {
           setIsAuthenticated(false);
-          localStorage.removeItem("vividwake_admin_pw");
+          try {
+            sessionStorage.removeItem("vividwake_admin_session_pw");
+            localStorage.removeItem("vividwake_admin_pw");
+          } catch (_e) {}
           setAuthError("Invalid password. Please enter master password.");
         }
       }
@@ -249,7 +289,10 @@ export default function AdminAnalyticsDashboard() {
     e.preventDefault();
     if (inputPassword === "romeoPistol") {
       setPassword("romeoPistol");
-      localStorage.setItem("vividwake_admin_pw", "romeoPistol");
+      try {
+        localStorage.removeItem("vividwake_admin_pw");
+        sessionStorage.setItem("vividwake_admin_session_pw", "romeoPistol");
+      } catch (_e) {}
       setIsAuthenticated(true);
       setAuthError("");
       fetchPendingTransfers("romeoPistol");
@@ -259,7 +302,10 @@ export default function AdminAnalyticsDashboard() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("vividwake_admin_pw");
+    try {
+      localStorage.removeItem("vividwake_admin_pw");
+      sessionStorage.removeItem("vividwake_admin_session_pw");
+    } catch (_e) {}
     setPassword("");
     setIsAuthenticated(false);
     setSessions([]);

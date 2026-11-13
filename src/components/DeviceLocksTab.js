@@ -15,8 +15,10 @@ import {
   FiTrash2,
   FiX
 } from "react-icons/fi";
+import { useModal } from "@/components/ModalContext";
 
 export default function DeviceLocksTab({ password, onActionSuccess }) {
+  const { showConfirm, showAlert } = useModal();
   const [locks, setLocks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -50,17 +52,35 @@ export default function DeviceLocksTab({ password, onActionSuccess }) {
 
   const handleAction = async (action, lock, extra = {}) => {
     const email = lock.boundEmail;
-    if (action === "ban" && !confirm(`🚨 REMOTE KILL SWITCH\n\nBan device for ${email}?\nThis instantly terminates lock screen playback and locks the app.`)) {
-      return;
+
+    if (action === "ban") {
+      const ok = await showConfirm({
+        title: "Activate Remote Kill Switch",
+        message: `Ban device for ${email}?\n\nThis immediately terminates lock screen playback and locks the mobile application.`,
+        confirmText: "Activate Kill Switch",
+        variant: "danger"
+      });
+      if (!ok) return;
     }
-    if (action === "unlock" && !confirm(`Release 1-to-1 device bond for ${email}?\nThis frees the user to bind a new physical phone.`)) {
-      return;
+
+    if (action === "unlock") {
+      const ok = await showConfirm({
+        title: "Release 1-to-1 Device Bond",
+        message: `Release hardware lock bond for ${email}?\n\nThis frees the user to bind a new physical phone.`,
+        confirmText: "Release Bond",
+        variant: "warning"
+      });
+      if (!ok) return;
     }
+
     if (action === "purge-user") {
-      const confirmed = confirm(
-        `⚠️ PERMANENT USER & HARDWARE PURGE\n\nEntirely delete all database records for:\nEmail: ${email || "None"}\nDevice: ${lock.hardwareFingerprint || "Unknown"}\n\nThis will permanently delete:\n• 1-to-1 Phone Hardware Lock\n• All session analytics & telemetry logs\n• VIP and wallpaper access rights\n\nThe user will be able to register fresh from the start as a brand-new customer.\n\nProceed with permanent deletion?`
-      );
-      if (!confirmed) return;
+      const ok = await showConfirm({
+        title: "Permanent User & Hardware Purge",
+        message: `Entirely delete all database records for:\nEmail: ${email || "None"}\nDevice: ${lock.hardwareFingerprint || "Unknown"}\n\nThis will permanently delete:\n• 1-to-1 Phone Hardware Lock\n• All session analytics & telemetry logs\n• VIP and wallpaper access rights\n\nThe user will be able to register fresh from the start as a brand-new customer.`,
+        confirmText: "Purge Permanently",
+        variant: "danger"
+      });
+      if (!ok) return;
     }
 
     setProcessingId(lock._id);
@@ -88,10 +108,18 @@ export default function DeviceLocksTab({ password, onActionSuccess }) {
         fetchLocks();
         if (onActionSuccess) onActionSuccess();
       } else {
-        alert("Action failed: " + (data.error || "Unknown error"));
+        await showAlert({
+          title: "Action Failed",
+          message: data.error || "Unknown error occurred",
+          variant: "danger"
+        });
       }
     } catch (e) {
-      alert("Error: " + e.message);
+      await showAlert({
+        title: "Error",
+        message: e.message,
+        variant: "danger"
+      });
     } finally {
       setProcessingId(null);
     }
@@ -102,10 +130,13 @@ export default function DeviceLocksTab({ password, onActionSuccess }) {
     const query = purgeInput.trim();
     if (!query) return;
 
-    const confirmed = confirm(
-      `⚠️ PERMANENT USER & DEVICE PURGE\n\nPurge all database records matching:\n"${query}"\n\nThis will delete device locks and session logs so this account/device can register fresh from the start.\n\nAre you absolutely sure?`
-    );
-    if (!confirmed) return;
+    const ok = await showConfirm({
+      title: "Permanent User & Device Purge",
+      message: `Purge all database records matching:\n"${query}"\n\nThis will delete device locks and session logs so this account/device can register fresh from the start.`,
+      confirmText: "Confirm Permanent Deletion",
+      variant: "danger"
+    });
+    if (!ok) return;
 
     setPurgingDirect(true);
     setStatusMsg("");
@@ -133,10 +164,18 @@ export default function DeviceLocksTab({ password, onActionSuccess }) {
         fetchLocks();
         if (onActionSuccess) onActionSuccess();
       } else {
-        alert("Purge failed: " + (data.error || "Unknown error"));
+        await showAlert({
+          title: "Purge Failed",
+          message: data.error || "Unknown error occurred",
+          variant: "danger"
+        });
       }
     } catch (err) {
-      alert("Error during purge: " + err.message);
+      await showAlert({
+        title: "Purge Error",
+        message: err.message,
+        variant: "danger"
+      });
     } finally {
       setPurgingDirect(false);
     }

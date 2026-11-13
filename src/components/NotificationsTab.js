@@ -17,8 +17,10 @@ import {
   FiTrendingUp,
   FiInbox
 } from "react-icons/fi";
+import { useModal } from "@/components/ModalContext";
 
 export default function NotificationsTab({ password }) {
+  const { showConfirm, showAlert } = useModal();
   const [target, setTarget] = useState("ALL");
   const [targetEmail, setTargetEmail] = useState("");
   const [deliveryType, setDeliveryType] = useState("both");
@@ -66,18 +68,30 @@ export default function NotificationsTab({ password }) {
   const handleSend = async (e) => {
     e.preventDefault();
     if (!title.trim() || !body.trim()) {
-      alert("Please enter both a title and notification body.");
+      await showAlert({
+        title: "Missing Content",
+        message: "Please enter both a title and notification body.",
+        variant: "warning"
+      });
       return;
     }
     if (target === "CUSTOM" && !targetEmail.trim()) {
-      alert("Please specify the target user's registered email.");
+      await showAlert({
+        title: "Missing Target Email",
+        message: "Please specify the target user's registered Google email.",
+        variant: "warning"
+      });
       return;
     }
 
     const targetDesc = target === "ALL" ? "All Active Users" : target === "VIP" ? "VIP Members" : targetEmail;
-    if (!confirm(`Broadcast notification to ${targetDesc}?\n\n"${title}"`)) {
-      return;
-    }
+    const ok = await showConfirm({
+      title: "Broadcast Notification",
+      message: `Broadcast push notification to ${targetDesc}?\n\n"${title}"`,
+      confirmText: "Broadcast Now",
+      variant: "info"
+    });
+    if (!ok) return;
 
     setSending(true);
     setSuccessMsg("");
@@ -103,10 +117,18 @@ export default function NotificationsTab({ password }) {
         fetchHistory();
         setTimeout(() => setSuccessMsg(""), 5000);
       } else {
-        alert("Failed to send: " + (data.error || "Unknown error"));
+        await showAlert({
+          title: "Send Failed",
+          message: data.error || "Unknown error occurred",
+          variant: "danger"
+        });
       }
     } catch (e) {
-      alert("Error: " + e.message);
+      await showAlert({
+        title: "Error",
+        message: e.message,
+        variant: "danger"
+      });
     } finally {
       setSending(false);
     }

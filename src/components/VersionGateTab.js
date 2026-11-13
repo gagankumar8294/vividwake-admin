@@ -9,8 +9,10 @@ import {
   FiCheckCircle,
   FiRefreshCw
 } from "react-icons/fi";
+import { useModal } from "@/components/ModalContext";
 
 export default function VersionGateTab({ password }) {
+  const { showConfirm, showAlert } = useModal();
   const [config, setConfig] = useState({
     minSupportedVersionCode: 1,
     minSupportedVersionName: "1.0.0",
@@ -65,10 +67,18 @@ export default function VersionGateTab({ password }) {
         setStatusMsg("Version gate settings updated successfully!");
         setTimeout(() => setStatusMsg(""), 4500);
       } else {
-        alert("Failed to save: " + (data.error || "Unknown error"));
+        await showAlert({
+          title: "Save Failed",
+          message: data.error || "Unknown error occurred",
+          variant: "danger"
+        });
       }
     } catch (e) {
-      alert("Error saving config: " + e.message);
+      await showAlert({
+        title: "Error Saving Config",
+        message: e.message,
+        variant: "danger"
+      });
     } finally {
       setSaving(false);
     }

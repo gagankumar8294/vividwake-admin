@@ -29,8 +29,10 @@ import {
   FiLock,
   FiUnlock
 } from "react-icons/fi";
+import { useModal } from "@/components/ModalContext";
 
 export default function CatalogManagerTab({ password }) {
+  const { showConfirm, showAlert } = useModal();
   const [wallpapers, setWallpapers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -332,13 +334,13 @@ export default function CatalogManagerTab({ password }) {
 
   // Delete
   const handleDeleteWallpaper = async (wallpaper) => {
-    if (
-      !confirm(
-        `⚠️ DELETE WALLPAPER?\n\nAre you sure you want to permanently delete '${wallpaper.title}' (${wallpaper.wallpaperId})?\n\nThis will remove it from the database and remove it from wallpapers.json.`
-      )
-    ) {
-      return;
-    }
+    const ok = await showConfirm({
+      title: "Delete Wallpaper",
+      message: `Permanently delete '${wallpaper.title}' (${wallpaper.wallpaperId})?\n\nThis will remove it from the MongoDB catalog database and the mobile app catalog.`,
+      confirmText: "Delete Wallpaper",
+      variant: "danger"
+    });
+    if (!ok) return;
 
     try {
       const res = await fetch(`/api/admin/catalog?id=${encodeURIComponent(wallpaper.wallpaperId)}`, {
@@ -359,9 +361,13 @@ export default function CatalogManagerTab({ password }) {
 
   // Full DB -> wallpapers.json Sync
   const handleSyncAllToJson = async () => {
-    if (!confirm("Sync all database published wallpapers into the mobile app's wallpapers.json files now?")) {
-      return;
-    }
+    const ok = await showConfirm({
+      title: "Sync Catalog to App Files",
+      message: "Sync all database published wallpapers into the mobile app's wallpapers.json files now?",
+      confirmText: "Sync Now",
+      variant: "info"
+    });
+    if (!ok) return;
     setLoading(true);
     try {
       const res = await fetch("/api/admin/catalog", {

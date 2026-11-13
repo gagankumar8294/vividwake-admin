@@ -11,8 +11,10 @@ import {
   FiAlertCircle,
   FiCheck
 } from "react-icons/fi";
+import { useModal } from "@/components/ModalContext";
 
 export default function TransfersTab({ password, onActionSuccess }) {
+  const { showConfirm, showAlert } = useModal();
   const [locks, setLocks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [processingId, setProcessingId] = useState(null);
@@ -41,11 +43,17 @@ export default function TransfersTab({ password, onActionSuccess }) {
 
   const handleTransfer = async (action, lock) => {
     const isApprove = action === "approve-transfer";
-    const promptText = isApprove
-      ? `Approve device transfer for ${lock.boundEmail} to ${lock.transferRequest?.newDeviceModel || "new phone"}?`
-      : `Reject device transfer for ${lock.boundEmail}?`;
+    const targetModel = lock.transferRequest?.newDeviceModel || "new phone";
 
-    if (!confirm(promptText)) return;
+    const ok = await showConfirm({
+      title: isApprove ? "Approve Device Rebind" : "Reject Device Rebind",
+      message: isApprove
+        ? `Approve device transfer for ${lock.boundEmail} to ${targetModel}?\n\nThis will re-bind the user account to the new device hardware.`
+        : `Reject device transfer request for ${lock.boundEmail}?`,
+      confirmText: isApprove ? "Approve Transfer" : "Reject Transfer",
+      variant: isApprove ? "info" : "danger"
+    });
+    if (!ok) return;
 
     setProcessingId(lock._id);
     setStatusMsg("");
@@ -65,10 +73,18 @@ export default function TransfersTab({ password, onActionSuccess }) {
         fetchLocks();
         if (onActionSuccess) onActionSuccess();
       } else {
-        alert("Action failed: " + (data.error || "Unknown error"));
+        await showAlert({
+          title: "Action Failed",
+          message: data.error || "Unknown error occurred",
+          variant: "danger"
+        });
       }
     } catch (e) {
-      alert("Error: " + e.message);
+      await showAlert({
+        title: "Error",
+        message: e.message,
+        variant: "danger"
+      });
     } finally {
       setProcessingId(null);
     }

@@ -21,8 +21,10 @@ import {
   FiShield,
   FiInfo
 } from "react-icons/fi";
+import { useModal } from "@/components/ModalContext";
 
 export default function WallpapersTab({ password }) {
+  const { showConfirm, showAlert } = useModal();
   const [wallpapers, setWallpapers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -118,10 +120,14 @@ export default function WallpapersTab({ password }) {
     setModalOpen(true);
   };
 
-  const handleAddAllowedUser = (emailToAdd) => {
+  const handleAddAllowedUser = async (emailToAdd) => {
     const email = (emailToAdd || newUserEmail).trim().toLowerCase();
     if (!email || !email.includes("@")) {
-      alert("Please enter a valid email address.");
+      await showAlert({
+        title: "Invalid Email",
+        message: "Please enter a valid Google email address.",
+        variant: "warning"
+      });
       return;
     }
     if (!allowedUsers.includes(email)) {
@@ -136,10 +142,14 @@ export default function WallpapersTab({ password }) {
     setAllowedUsers(allowedUsers.filter((u) => u !== emailToRemove));
   };
 
-  const handleAddBlockedUser = (emailToBlock) => {
+  const handleAddBlockedUser = async (emailToBlock) => {
     const email = (emailToBlock || newBlockedEmail).trim().toLowerCase();
     if (!email || !email.includes("@")) {
-      alert("Please enter a valid email address.");
+      await showAlert({
+        title: "Invalid Email",
+        message: "Please enter a valid Google email address.",
+        variant: "warning"
+      });
       return;
     }
     if (!blockedUsers.includes(email)) {
@@ -158,9 +168,13 @@ export default function WallpapersTab({ password }) {
     if (!activeWallpaper) return;
 
     if (accessMode === "restricted" && allowedUsers.length === 0) {
-      if (!confirm("No users are assigned yet. This wallpaper will remain hidden until you add at least one allowed user. Proceed?")) {
-        return;
-      }
+      const ok = await showConfirm({
+        title: "No Users Assigned",
+        message: "No users are assigned yet. This wallpaper will remain hidden until you add at least one allowed user.\n\nProceed with saving?",
+        confirmText: "Save Anyway",
+        variant: "warning"
+      });
+      if (!ok) return;
     }
 
     setSaving(true);
@@ -190,10 +204,18 @@ export default function WallpapersTab({ password }) {
         setModalOpen(false);
         fetchWallpapers(page);
       } else {
-        alert("Failed to update access: " + (data.error || "Unknown error"));
+        await showAlert({
+          title: "Update Failed",
+          message: data.error || "Unknown error occurred",
+          variant: "danger"
+        });
       }
     } catch (err) {
-      alert("Error updating access: " + err.message);
+      await showAlert({
+        title: "Error",
+        message: err.message,
+        variant: "danger"
+      });
     } finally {
       setSaving(false);
     }
@@ -223,10 +245,18 @@ export default function WallpapersTab({ password }) {
         showToast(`'${wp.title}' set to ${newStatus.toUpperCase()}`);
         fetchWallpapers(page);
       } else {
-        alert("Failed: " + data.error);
+        await showAlert({
+          title: "Status Update Failed",
+          message: data.error || "Unknown error",
+          variant: "danger"
+        });
       }
     } catch (e) {
-      alert("Error: " + e.message);
+      await showAlert({
+        title: "Error",
+        message: e.message,
+        variant: "danger"
+      });
     }
   };
 
