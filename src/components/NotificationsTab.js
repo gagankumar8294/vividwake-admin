@@ -15,7 +15,12 @@ import {
   FiMousePointer,
   FiActivity,
   FiTrendingUp,
-  FiInbox
+  FiInbox,
+  FiList,
+  FiGrid,
+  FiUser,
+  FiInfo,
+  FiZap
 } from "react-icons/fi";
 import { useModal } from "@/components/ModalContext";
 
@@ -24,9 +29,10 @@ export default function NotificationsTab({ password }) {
   const [target, setTarget] = useState("ALL");
   const [targetEmail, setTargetEmail] = useState("");
   const [deliveryType, setDeliveryType] = useState("both");
-  const [title, setTitle] = useState("New 4K Live Wallpapers Available ✨");
+  const [title, setTitle] = useState("New 4K Live Wallpapers Available");
   const [body, setBody] = useState("Immerse your lock screen in stunning fluid animations now in Explore Store!");
   const [wallpaperId, setWallpaperId] = useState("");
+  const [historyViewMode, setHistoryViewMode] = useState("list"); // 'list' | 'cards'
 
   const [sending, setSending] = useState(false);
   const [history, setHistory] = useState([]);
@@ -458,15 +464,16 @@ export default function NotificationsTab({ password }) {
             )}
           </div>
 
-          <div style={{ fontSize: "0.72rem", color: "var(--text-sub)", marginTop: "1rem", lineHeight: "1.4" }}>
-            💡 <strong>Visual Dimming Enabled:</strong> In-app notifications automatically dim upon tap by the user, while unread messages remain bright with an alert badge until clicked.
+          <div style={{ fontSize: "0.72rem", color: "var(--text-sub)", marginTop: "1rem", lineHeight: "1.4", display: "flex", alignItems: "flex-start", gap: "6px" }}>
+            <FiInfo size={13} style={{ flexShrink: 0, marginTop: "2px", color: "var(--accent-mint)" }} />
+            <span><strong>Visual Dimming Enabled:</strong> In-app notifications automatically dim upon tap by the user, while unread messages remain bright with an alert badge until clicked.</span>
           </div>
         </div>
       </div>
 
       {/* Broadcast History & Engagement Telemetry */}
       <div className="mission-card">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}>
           <div>
             <h3 style={{ fontSize: "0.95rem", fontWeight: "700", color: "#ffffff", display: "flex", alignItems: "center", gap: "6px" }}>
               <FiClock color="var(--accent-mint)" /> Notification Broadcast History & Click Telemetry ({history.length})
@@ -475,94 +482,201 @@ export default function NotificationsTab({ password }) {
               Track real-time delivery and click engagement across all sent broadcast notifications
             </p>
           </div>
-          <button onClick={fetchHistory} disabled={loadingHistory} className="btn-header" style={{ fontSize: "0.74rem", padding: "4px 8px" }}>
-            <FiRefreshCw className={loadingHistory ? "spin" : ""} size={10} />
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            {/* View Mode Toggle */}
+            <div style={{ display: "inline-flex", background: "rgba(13, 17, 24, 0.7)", borderRadius: "8px", padding: "2px", border: "1px solid rgba(255, 255, 255, 0.08)" }}>
+              <button
+                type="button"
+                onClick={() => setHistoryViewMode("list")}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  fontSize: "0.75rem",
+                  fontWeight: "600",
+                  padding: "4px 10px",
+                  borderRadius: "6px",
+                  border: "none",
+                  background: historyViewMode === "list" ? "rgba(45, 212, 191, 0.15)" : "transparent",
+                  color: historyViewMode === "list" ? "var(--accent-mint)" : "var(--text-muted)",
+                  cursor: "pointer",
+                  transition: "all 0.15s"
+                }}
+              >
+                <FiList size={13} />
+                <span>List</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setHistoryViewMode("cards")}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  fontSize: "0.75rem",
+                  fontWeight: "600",
+                  padding: "4px 10px",
+                  borderRadius: "6px",
+                  border: "none",
+                  background: historyViewMode === "cards" ? "rgba(45, 212, 191, 0.15)" : "transparent",
+                  color: historyViewMode === "cards" ? "var(--accent-mint)" : "var(--text-muted)",
+                  cursor: "pointer",
+                  transition: "all 0.15s"
+                }}
+              >
+                <FiGrid size={13} />
+                <span>Cards</span>
+              </button>
+            </div>
+            <button onClick={fetchHistory} disabled={loadingHistory} className="btn-header" style={{ fontSize: "0.74rem", padding: "4px 8px" }}>
+              <FiRefreshCw className={loadingHistory ? "spin" : ""} size={10} />
+            </button>
+          </div>
         </div>
 
-        <div style={{ overflowX: "auto", marginTop: "0.75rem" }}>
-          <table className="glass-table">
-            <thead>
-              <tr>
-                <th>Title & Message</th>
-                <th>Target</th>
-                <th>Channel</th>
-                <th>Engagement / Clicks</th>
-                <th>Sent At</th>
-              </tr>
-            </thead>
-            <tbody>
-              {history.length === 0 ? (
+        {historyViewMode === "list" ? (
+          <div style={{ overflowX: "auto", marginTop: "0.75rem" }}>
+            <table className="glass-table">
+              <thead>
                 <tr>
-                  <td colSpan="5" style={{ textAlign: "center", padding: "2rem", color: "var(--text-sub)" }}>
-                    No push notifications dispatched yet.
-                  </td>
+                  <th style={{ width: "45px", textAlign: "center" }}>#</th>
+                  <th>Title & Message</th>
+                  <th>Target</th>
+                  <th>Channel</th>
+                  <th>Engagement / Clicks</th>
+                  <th>Sent At</th>
                 </tr>
-              ) : (
-                history.map((h, i) => (
-                  <tr key={i}>
-                    <td>
-                      <div style={{ fontWeight: "600", color: "#ffffff", fontSize: "0.82rem" }}>{h.title}</div>
-                      <div style={{ fontSize: "0.75rem", color: "var(--text-sub)", marginTop: "2px" }}>{h.body}</div>
-                      {h.wallpaperId && (
-                        <span style={{ fontSize: "0.68rem", color: "var(--accent-mint)", background: "rgba(45, 212, 191, 0.08)", padding: "1px 6px", borderRadius: "4px", display: "inline-block", marginTop: "4px" }}>
-                          Deep-link: {h.wallpaperId}
-                        </span>
-                      )}
-                    </td>
-                    <td>
-                      <span className="status-pill" style={{ background: "rgba(255,255,255,0.06)", color: "var(--text-muted)" }}>
-                        {h.target === "CUSTOM" ? h.targetEmail : h.target}
-                      </span>
-                    </td>
-                    <td style={{ fontSize: "0.75rem", color: "var(--text-sub)" }}>
-                      {h.deliveryType || "both"}
-                    </td>
-                    <td>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
-                        <span
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "5px",
-                            padding: "3px 8px",
-                            borderRadius: "6px",
-                            fontSize: "0.75rem",
-                            fontWeight: "700",
-                            background: (h.clicks || 0) > 0 ? "rgba(45, 212, 191, 0.15)" : "rgba(255, 255, 255, 0.05)",
-                            color: (h.clicks || 0) > 0 ? "var(--accent-mint)" : "var(--text-muted)",
-                            border: (h.clicks || 0) > 0 ? "1px solid rgba(45, 212, 191, 0.3)" : "1px solid rgba(255, 255, 255, 0.08)",
-                            width: "fit-content"
-                          }}
-                        >
-                          <FiMousePointer size={11} /> {h.clicks || 0} clicks
-                        </span>
-                        {(h.uniqueClickers || 0) > 0 && (
-                          <span style={{ fontSize: "0.68rem", color: "var(--text-sub)" }}>
-                            👥 {h.uniqueClickers} unique device{h.uniqueClickers > 1 ? "s" : ""}
-                          </span>
-                        )}
-                        {h.uniqueUsers && h.uniqueUsers.length > 0 && (
-                          <span style={{ fontSize: "0.68rem", color: "var(--accent-mint)" }}>
-                            👤 {h.uniqueUsers.join(", ")}
-                          </span>
-                        )}
-                        {h.lastClickedAt && (
-                          <span style={{ fontSize: "0.65rem", color: "var(--text-muted)" }}>
-                            Last tap: {new Date(h.lastClickedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td style={{ fontSize: "0.75rem", color: "var(--text-sub)" }}>
-                      {h.sentAt ? new Date(h.sentAt).toLocaleString() : "Recently"}
+              </thead>
+              <tbody>
+                {history.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" style={{ textAlign: "center", padding: "2rem", color: "var(--text-sub)" }}>
+                      No push notifications dispatched yet.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ) : (
+                  history.map((h, i) => (
+                    <tr key={i}>
+                      <td style={{ textAlign: "center", color: "var(--text-sub)", fontSize: "0.75rem", fontWeight: "700" }}>
+                        #{i + 1}
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: "600", color: "#ffffff", fontSize: "0.82rem" }}>{h.title}</div>
+                        <div style={{ fontSize: "0.75rem", color: "var(--text-sub)", marginTop: "2px" }}>{h.body}</div>
+                        {h.wallpaperId && (
+                          <span style={{ fontSize: "0.68rem", color: "var(--accent-mint)", background: "rgba(45, 212, 191, 0.08)", padding: "1px 6px", borderRadius: "4px", display: "inline-block", marginTop: "4px" }}>
+                            Deep-link: {h.wallpaperId}
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        <span className="status-pill" style={{ background: "rgba(255,255,255,0.06)", color: "var(--text-muted)" }}>
+                          {h.target === "CUSTOM" ? h.targetEmail : h.target}
+                        </span>
+                      </td>
+                      <td style={{ fontSize: "0.75rem", color: "var(--text-sub)" }}>
+                        {h.deliveryType || "both"}
+                      </td>
+                      <td>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "5px",
+                              padding: "3px 8px",
+                              borderRadius: "6px",
+                              fontSize: "0.75rem",
+                              fontWeight: "700",
+                              background: (h.clicks || 0) > 0 ? "rgba(45, 212, 191, 0.15)" : "rgba(255, 255, 255, 0.05)",
+                              color: (h.clicks || 0) > 0 ? "var(--accent-mint)" : "var(--text-muted)",
+                              border: (h.clicks || 0) > 0 ? "1px solid rgba(45, 212, 191, 0.3)" : "1px solid rgba(255, 255, 255, 0.08)",
+                              width: "fit-content"
+                            }}
+                          >
+                            <FiMousePointer size={11} /> {h.clicks || 0} clicks
+                          </span>
+                          {(h.uniqueClickers || 0) > 0 && (
+                            <span style={{ fontSize: "0.68rem", color: "var(--text-sub)", display: "flex", alignItems: "center", gap: "4px" }}>
+                              <FiUsers size={11} /> {h.uniqueClickers} unique device{h.uniqueClickers > 1 ? "s" : ""}
+                            </span>
+                          )}
+                          {h.uniqueUsers && h.uniqueUsers.length > 0 && (
+                            <span style={{ fontSize: "0.68rem", color: "var(--accent-mint)", display: "flex", alignItems: "center", gap: "4px" }}>
+                              <FiUser size={11} /> {h.uniqueUsers.join(", ")}
+                            </span>
+                          )}
+                          {h.lastClickedAt && (
+                            <span style={{ fontSize: "0.65rem", color: "var(--text-muted)" }}>
+                              Last tap: {new Date(h.lastClickedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td style={{ fontSize: "0.75rem", color: "var(--text-sub)" }}>
+                        {h.sentAt ? new Date(h.sentAt).toLocaleString() : "Recently"}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          /* Cards View for Notification History */
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "0.85rem", marginTop: "0.85rem" }}>
+            {history.length === 0 ? (
+              <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "2rem", color: "var(--text-sub)" }}>
+                No push notifications dispatched yet.
+              </div>
+            ) : (
+              history.map((h, i) => (
+                <div
+                  key={i}
+                  style={{
+                    background: "rgba(13, 17, 24, 0.6)",
+                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                    borderRadius: "10px",
+                    padding: "1rem",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.65rem"
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "0.72rem", fontWeight: "800", color: "var(--accent-mint)", background: "rgba(45, 212, 191, 0.1)", padding: "1px 7px", borderRadius: "4px" }}>
+                      #{i + 1}
+                    </span>
+                    <span className="status-pill" style={{ background: "rgba(255,255,255,0.06)", color: "var(--text-muted)", fontSize: "0.68rem" }}>
+                      {h.target === "CUSTOM" ? h.targetEmail : h.target}
+                    </span>
+                  </div>
+
+                  <div>
+                    <div style={{ fontWeight: "700", color: "#ffffff", fontSize: "0.86rem" }}>{h.title}</div>
+                    <div style={{ fontSize: "0.76rem", color: "var(--text-sub)", marginTop: "2px" }}>{h.body}</div>
+                  </div>
+
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto", paddingTop: "6px", borderTop: "1px solid rgba(255, 255, 255, 0.05)" }}>
+                    <span style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      fontSize: "0.72rem",
+                      fontWeight: "700",
+                      color: (h.clicks || 0) > 0 ? "var(--accent-mint)" : "var(--text-muted)"
+                    }}>
+                      <FiMousePointer size={10} /> {h.clicks || 0} clicks
+                    </span>
+                    <span style={{ fontSize: "0.7rem", color: "var(--text-sub)" }}>
+                      {h.sentAt ? new Date(h.sentAt).toLocaleDateString() : "Recent"}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </div>
 
       {/* System In-App Notification Clicks (e.g., Welcome drop, Featured wallpapers) */}
@@ -583,6 +697,7 @@ export default function NotificationsTab({ password }) {
             <table className="glass-table">
               <thead>
                 <tr>
+                  <th style={{ width: "45px", textAlign: "center" }}>#</th>
                   <th>Notification Title</th>
                   <th>Deep-Link</th>
                   <th>Engagement / Clicks</th>
@@ -592,6 +707,9 @@ export default function NotificationsTab({ password }) {
               <tbody>
                 {systemNotifications.map((s, idx) => (
                   <tr key={idx}>
+                    <td style={{ textAlign: "center", color: "var(--text-sub)", fontSize: "0.75rem", fontWeight: "700" }}>
+                      #{idx + 1}
+                    </td>
                     <td>
                       <div style={{ fontWeight: "600", color: "#ffffff", fontSize: "0.82rem" }}>{s.title}</div>
                       <div style={{ fontSize: "0.7rem", color: "var(--text-sub)" }}>ID: {s.id}</div>
@@ -623,8 +741,9 @@ export default function NotificationsTab({ password }) {
                         <FiMousePointer size={11} /> {s.clicks} clicks ({s.uniqueClickers} devices)
                       </span>
                       {s.uniqueUsers && s.uniqueUsers.length > 0 && (
-                        <div style={{ fontSize: "0.68rem", color: "var(--text-sub)", marginTop: "2px" }}>
-                          👤 {s.uniqueUsers.join(", ")}
+                        <div style={{ fontSize: "0.68rem", color: "var(--text-sub)", marginTop: "2px", display: "flex", alignItems: "center", gap: "3px" }}>
+                          <FiUser size={11} />
+                          <span>{s.uniqueUsers.join(", ")}</span>
                         </div>
                       )}
                     </td>

@@ -18,7 +18,15 @@ import {
   FiPlay,
   FiArrowRight,
   FiInfo,
-  FiHelpCircle
+  FiHelpCircle,
+  FiAward,
+  FiHeart,
+  FiNavigation,
+  FiCamera,
+  FiCheck,
+  FiX,
+  FiCompass,
+  FiLayers
 } from "react-icons/fi";
 
 export default function InstallGuidePage() {
@@ -33,7 +41,7 @@ export default function InstallGuidePage() {
   const oemGuides = {
     motorola: {
       brand: "Motorola (HelloUI / Clean AOSP)",
-      icon: "📱",
+      icon: FiSmartphone,
       steps: [
         "Tap 'Download VividWake APK' and tap 'Download anyway' in Chrome.",
         "Open Chrome Downloads, tap 'VividWake-v1.0.apk', and tap 'Settings' -> enable 'Allow from this source'.",
@@ -43,7 +51,7 @@ export default function InstallGuidePage() {
     },
     samsung: {
       brand: "Samsung (OneUI 6.0 / 6.1)",
-      icon: "✨",
+      icon: FiZap,
       steps: [
         "Download APK and open via 'My Files' -> 'Downloads' or Chrome notifications.",
         "If Samsung 'Auto Blocker' is enabled: go to Settings -> Security and privacy -> Auto Blocker -> Temporarily toggle OFF.",
@@ -53,7 +61,7 @@ export default function InstallGuidePage() {
     },
     xiaomi: {
       brand: "Xiaomi / POCO / Redmi (HyperOS / MIUI)",
-      icon: "⚡",
+      icon: FiCpu,
       steps: [
         "Download APK -> In Package Installer, check 'I am aware of the possible risks' after the 10-second countdown.",
         "Tap 'OK' -> Tap 'More details' on Play Protect -> 'Install anyway'.",
@@ -63,7 +71,7 @@ export default function InstallGuidePage() {
     },
     oneplus: {
       brand: "OnePlus / Realme / OPPO (OxygenOS / ColorOS)",
-      icon: "🚀",
+      icon: FiCompass,
       steps: [
         "Download APK -> Tap 'Install' -> Tap 'Settings' -> Enable 'Allow app installs from this source'.",
         "Tap 'Install anyway' on the security scan prompt.",
@@ -73,7 +81,7 @@ export default function InstallGuidePage() {
     },
     pixel: {
       brand: "Google Pixel (Android 14 / 15)",
-      icon: "💎",
+      icon: FiAward,
       steps: [
         "Download APK in Chrome -> Tap 'Download anyway'.",
         "Tap notification -> Settings -> Enable 'Allow from this source'.",
@@ -380,7 +388,9 @@ export default function InstallGuidePage() {
               transition: "all 0.2s"
             }}
           >
-            <span>👑 GTA VI — Lucia Editorial Portrait</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+              <FiAward size={16} /> GTA VI — Lucia Editorial Portrait
+            </span>
           </button>
 
           <button
@@ -400,7 +410,9 @@ export default function InstallGuidePage() {
               transition: "all 0.2s"
             }}
           >
-            <span>💋 Sabrina Carpenter — Taste Kiss Scene</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+              <FiHeart size={16} /> Sabrina Carpenter — Taste Kiss Scene
+            </span>
           </button>
 
           <button
@@ -420,7 +432,9 @@ export default function InstallGuidePage() {
               transition: "all 0.2s"
             }}
           >
-            <span>🏍️ GTA VI — Lucia & Jason Wheelie</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+              <FiNavigation size={16} /> GTA VI — Lucia & Jason Wheelie
+            </span>
           </button>
         </div>
 
@@ -513,8 +527,8 @@ export default function InstallGuidePage() {
                     style={{ width: "100%", height: "auto", display: "block" }}
                   />
                 </div>
-                <div style={{ marginTop: "10px", fontSize: "0.78rem", color: "#c5a059", fontWeight: "600" }}>
-                  📸 Real Motorola g64 Lock Screen
+                <div style={{ marginTop: "10px", fontSize: "0.78rem", color: "#c5a059", fontWeight: "600", display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                  <FiCamera size={13} /> Real Motorola g64 Lock Screen
                 </div>
               </div>
 
@@ -533,8 +547,8 @@ export default function InstallGuidePage() {
                     style={{ width: "100%", height: "auto", display: "block" }}
                   />
                 </div>
-                <div style={{ marginTop: "10px", fontSize: "0.78rem", color: "#94a3b8", fontWeight: "600" }}>
-                  ✨ 4K Source Portrait Master
+                <div style={{ marginTop: "10px", fontSize: "0.78rem", color: "#94a3b8", fontWeight: "600", display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                  <FiZap size={13} /> 4K Source Portrait Master
                 </div>
               </div>
             </div>
@@ -630,8 +644,8 @@ export default function InstallGuidePage() {
                     style={{ width: "100%", height: "auto", display: "block" }}
                   />
                 </div>
-                <div style={{ marginTop: "10px", fontSize: "0.78rem", color: "#f43f5e", fontWeight: "600" }}>
-                  📸 Real Lock Screen Live Playback
+                <div style={{ marginTop: "10px", fontSize: "0.78rem", color: "#f43f5e", fontWeight: "600", display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                  <FiCamera size={13} /> Real Lock Screen Live Playback
                 </div>
               </div>
 
@@ -650,8 +664,8 @@ export default function InstallGuidePage() {
                     style={{ width: "100%", height: "auto", display: "block" }}
                   />
                 </div>
-                <div style={{ marginTop: "10px", fontSize: "0.78rem", color: "#94a3b8", fontWeight: "600" }}>
-                  📱 VividWake App Manager
+                <div style={{ marginTop: "10px", fontSize: "0.78rem", color: "#94a3b8", fontWeight: "600", display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                  <FiSmartphone size={13} /> VividWake App Manager
                 </div>
               </div>
             </div>
@@ -747,8 +761,8 @@ export default function InstallGuidePage() {
                     style={{ width: "100%", height: "auto", display: "block" }}
                   />
                 </div>
-                <div style={{ marginTop: "10px", fontSize: "0.78rem", color: "#38bdf8", fontWeight: "600" }}>
-                  🏍️ Vice City Wheelie Preview
+                <div style={{ marginTop: "10px", fontSize: "0.78rem", color: "#38bdf8", fontWeight: "600", display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                  <FiNavigation size={13} /> Vice City Wheelie Preview
                 </div>
               </div>
             </div>
@@ -815,7 +829,7 @@ export default function InstallGuidePage() {
                 marginBottom: "16px"
               }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", marginBottom: "12px" }}>
-                  <div style={{ color: "#fbbf24", fontSize: "1.4rem" }}>⚠️</div>
+                  <FiAlertTriangle style={{ color: "#fbbf24", fontSize: "1.4rem", flexShrink: 0, marginTop: "2px" }} />
                   <div>
                     <div style={{ fontSize: "0.9rem", fontWeight: "700", color: "#f1f5f9" }}>File might be harmful</div>
                     <div style={{ fontSize: "0.78rem", color: "#94a3b8" }}>Do you want to download VividWake-v1.0.apk anyway?</div>
@@ -844,9 +858,12 @@ export default function InstallGuidePage() {
               padding: "10px 14px",
               borderRadius: "0 8px 8px 0",
               fontSize: "0.8rem",
-              color: "#fbbf24"
+              color: "#fbbf24",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px"
             }}>
-              💡 <strong>Why this happens:</strong> Google flags all direct APK downloads outside Play Store. VividWake is 100% clean and safe.
+              <FiInfo size={14} style={{ flexShrink: 0 }} /> <span><strong>Why this happens:</strong> Google flags all direct APK downloads outside Play Store. VividWake is 100% clean and safe.</span>
             </div>
           </div>
 
@@ -926,9 +943,12 @@ export default function InstallGuidePage() {
               padding: "10px 14px",
               borderRadius: "0 8px 8px 0",
               fontSize: "0.8rem",
-              color: "#38bdf8"
+              color: "#38bdf8",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px"
             }}>
-              👉 <strong>Action:</strong> Tap <strong>Settings</strong> ➔ Toggle the switch to <strong>ON</strong> ➔ Press the Back button to resume.
+              <FiArrowRight size={14} style={{ flexShrink: 0 }} /> <span><strong>Action:</strong> Tap <strong>Settings</strong> ➔ Toggle the switch to <strong>ON</strong> ➔ Press the Back button to resume.</span>
             </div>
           </div>
 
@@ -968,7 +988,7 @@ export default function InstallGuidePage() {
                 marginBottom: "16px"
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
-                  <div style={{ color: "#2dd4bf", fontSize: "1.3rem" }}>🛡️</div>
+                  <FiShield style={{ color: "#2dd4bf", fontSize: "1.3rem" }} />
                   <div style={{ fontSize: "0.88rem", fontWeight: "700", color: "#f1f5f9" }}>Play Protect Alert</div>
                 </div>
                 <div style={{ fontSize: "0.78rem", color: "#94a3b8", marginBottom: "12px" }}>
@@ -999,9 +1019,12 @@ export default function InstallGuidePage() {
               padding: "10px 14px",
               borderRadius: "0 8px 8px 0",
               fontSize: "0.8rem",
-              color: "#2dd4bf"
+              color: "#2dd4bf",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px"
             }}>
-              ✅ <strong>Done:</strong> Tap <strong>More details</strong>, then click <strong>Install anyway</strong>. App installs immediately!
+              <FiCheckCircle size={14} style={{ flexShrink: 0 }} /> <span><strong>Done:</strong> Tap <strong>More details</strong>, then click <strong>Install anyway</strong>. App installs immediately!</span>
             </div>
           </div>
         </div>
@@ -1224,6 +1247,7 @@ export default function InstallGuidePage() {
         <div style={{ display: "flex", justifyContent: "center", gap: "10px", flexWrap: "wrap", marginBottom: "28px" }}>
           {Object.keys(oemGuides).map((key) => {
             const isSel = activeOemTab === key;
+            const OemIcon = oemGuides[key].icon;
             return (
               <button
                 key={key}
@@ -1237,10 +1261,13 @@ export default function InstallGuidePage() {
                   border: isSel ? "1px solid #2dd4bf" : "1px solid rgba(255,255,255,0.08)",
                   backgroundColor: isSel ? "rgba(45,212,191,0.15)" : "rgba(255,255,255,0.02)",
                   color: isSel ? "#2dd4bf" : "#94a3b8",
-                  transition: "all 0.2s"
+                  transition: "all 0.2s",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px"
                 }}
               >
-                {oemGuides[key].icon} {oemGuides[key].brand.split("(")[0]}
+                {OemIcon && <OemIcon size={14} />} {oemGuides[key].brand.split("(")[0]}
               </button>
             );
           })}
@@ -1255,10 +1282,15 @@ export default function InstallGuidePage() {
           borderRadius: "16px",
           padding: "28px"
         }}>
-          <h4 style={{ fontSize: "1.2rem", fontWeight: "800", color: "#ffffff", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
-            <span>{oemGuides[activeOemTab].icon}</span>
-            <span>{oemGuides[activeOemTab].brand}</span>
-          </h4>
+          {(() => {
+            const ActiveOemIcon = oemGuides[activeOemTab]?.icon;
+            return (
+              <h4 style={{ fontSize: "1.2rem", fontWeight: "800", color: "#ffffff", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
+                {ActiveOemIcon && <ActiveOemIcon size={18} style={{ color: "#2dd4bf" }} />}
+                <span>{oemGuides[activeOemTab].brand}</span>
+              </h4>
+            );
+          })()}
           <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
             {oemGuides[activeOemTab].steps.map((st, idx) => (
               <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
@@ -1310,34 +1342,70 @@ export default function InstallGuidePage() {
             <thead>
               <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
                 <th style={{ textAlign: "left", padding: "16px", color: "#94a3b8", fontSize: "0.9rem", fontWeight: "600" }}>Feature</th>
-                <th style={{ textAlign: "left", padding: "16px", color: "#2dd4bf", fontSize: "1rem", fontWeight: "800" }}>✨ VividWake Engine</th>
+                <th style={{ textAlign: "left", padding: "16px", color: "#2dd4bf", fontSize: "1rem", fontWeight: "800" }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <FiZap size={15} /> VividWake Engine
+                  </span>
+                </th>
                 <th style={{ textAlign: "left", padding: "16px", color: "#64748b", fontSize: "0.9rem", fontWeight: "600" }}>Traditional Live Wallpapers</th>
               </tr>
             </thead>
             <tbody>
               <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
                 <td style={{ padding: "16px", color: "#cbd5e1", fontWeight: "600" }}>Background Battery Drain</td>
-                <td style={{ padding: "16px", color: "#10b981", fontWeight: "700" }}>⚡ 0.0% (Decoder & Surface paused)</td>
-                <td style={{ padding: "16px", color: "#ef4444" }}>❌ 8% - 15% daily battery drain</td>
+                <td style={{ padding: "16px", color: "#10b981", fontWeight: "700" }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <FiCheckCircle size={14} /> 0.0% (Decoder & Surface paused)
+                  </span>
+                </td>
+                <td style={{ padding: "16px", color: "#ef4444" }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <FiX size={14} /> 8% - 15% daily battery drain
+                  </span>
+                </td>
               </tr>
               <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
                 <td style={{ padding: "16px", color: "#cbd5e1", fontWeight: "600" }}>Wake-Up Lag</td>
-                <td style={{ padding: "16px", color: "#10b981", fontWeight: "700" }}>⚡ 0ms (Instant hardware attach)</td>
-                <td style={{ padding: "16px", color: "#ef4444" }}>❌ 500ms - 1.2s black screen delay</td>
+                <td style={{ padding: "16px", color: "#10b981", fontWeight: "700" }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <FiCheckCircle size={14} /> 0ms (Instant hardware attach)
+                  </span>
+                </td>
+                <td style={{ padding: "16px", color: "#ef4444" }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <FiX size={14} /> 500ms - 1.2s black screen delay
+                  </span>
+                </td>
               </tr>
               <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
                 <td style={{ padding: "16px", color: "#cbd5e1", fontWeight: "600" }}>Video Decoder</td>
-                <td style={{ padding: "16px", color: "#10b981", fontWeight: "700" }}>⚡ Native MediaCodec + OpenGL ES 3.0</td>
+                <td style={{ padding: "16px", color: "#10b981", fontWeight: "700" }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <FiZap size={14} /> Native MediaCodec + OpenGL ES 3.0
+                  </span>
+                </td>
                 <td style={{ padding: "16px", color: "#94a3b8" }}>Basic Software / WebViews</td>
               </tr>
               <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
                 <td style={{ padding: "16px", color: "#cbd5e1", fontWeight: "600" }}>Privacy & Ad-Trackers</td>
-                <td style={{ padding: "16px", color: "#10b981", fontWeight: "700" }}>🛡️ 100% Ad-Free, No Data Mining</td>
-                <td style={{ padding: "16px", color: "#ef4444" }}>❌ Filled with interstitial ads</td>
+                <td style={{ padding: "16px", color: "#10b981", fontWeight: "700" }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <FiShield size={14} /> 100% Ad-Free, No Data Mining
+                  </span>
+                </td>
+                <td style={{ padding: "16px", color: "#ef4444" }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <FiX size={14} /> Filled with interstitial ads
+                  </span>
+                </td>
               </tr>
               <tr>
                 <td style={{ padding: "16px", color: "#cbd5e1", fontWeight: "600" }}>Offline Mode</td>
-                <td style={{ padding: "16px", color: "#10b981", fontWeight: "700" }}>⚡ Encrypted Vault (Plays without Wi-Fi)</td>
+                <td style={{ padding: "16px", color: "#10b981", fontWeight: "700" }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <FiCheckCircle size={14} /> Encrypted Vault (Plays without Wi-Fi)
+                  </span>
+                </td>
                 <td style={{ padding: "16px", color: "#94a3b8" }}>Requires internet to stream</td>
               </tr>
             </tbody>

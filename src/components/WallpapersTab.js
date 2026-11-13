@@ -19,13 +19,18 @@ import {
   FiChevronRight,
   FiCheck,
   FiShield,
-  FiInfo
+  FiInfo,
+  FiList,
+  FiGrid,
+  FiSlash,
+  FiAlertTriangle
 } from "react-icons/fi";
 import { useModal } from "@/components/ModalContext";
 
 export default function WallpapersTab({ password }) {
   const { showConfirm, showAlert } = useModal();
   const [wallpapers, setWallpapers] = useState([]);
+  const [viewMode, setViewMode] = useState("cards"); // 'cards' | 'list'
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -114,7 +119,7 @@ export default function WallpapersTab({ password }) {
 
     // Prefill targeted notification
     setSendNotif(true);
-    setNotifTitle(`✨ Exclusive Wallpaper: ${wp.title}`);
+    setNotifTitle(`Exclusive Wallpaper: ${wp.title}`);
     setNotifBody(`You've been granted VIP access to '${wp.title}'! Tap to preview & set as live lock screen.`);
     setNotifImageUrl(wp.thumbUrl || "");
     setModalOpen(true);
@@ -321,7 +326,9 @@ export default function WallpapersTab({ password }) {
           onClick={() => setSelectedStatus(selectedStatus === "draft" ? "all" : "draft")}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: "0.8rem", color: "#FCD34D", fontWeight: "700" }}>🔒 Unpublished (Draft)</span>
+            <span style={{ fontSize: "0.8rem", color: "#FCD34D", fontWeight: "700", display: "inline-flex", alignItems: "center", gap: "5px" }}>
+              <FiLock size={13} /> Unpublished (Draft)
+            </span>
             <FiLock size={18} color="#F59E0B" />
           </div>
           <div style={{ fontSize: "1.6rem", fontWeight: "800", color: "#F59E0B", marginTop: "4px" }}>
@@ -344,7 +351,9 @@ export default function WallpapersTab({ password }) {
           onClick={() => setSelectedStatus(selectedStatus === "restricted" ? "all" : "restricted")}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: "0.8rem", color: "#C4B5FD", fontWeight: "700" }}>👥 Restricted (VIP / Allowed)</span>
+            <span style={{ fontSize: "0.8rem", color: "#C4B5FD", fontWeight: "700", display: "inline-flex", alignItems: "center", gap: "5px" }}>
+              <FiUsers size={13} /> Restricted (VIP / Allowed)
+            </span>
             <FiUsers size={18} color="#8B5CF6" />
           </div>
           <div style={{ fontSize: "1.6rem", fontWeight: "800", color: "#A78BFA", marginTop: "4px" }}>
@@ -367,7 +376,9 @@ export default function WallpapersTab({ password }) {
           onClick={() => setSelectedStatus(selectedStatus === "published" ? "all" : "published")}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: "0.8rem", color: "#6EE7B7", fontWeight: "700" }}>🌐 Public (All Users)</span>
+            <span style={{ fontSize: "0.8rem", color: "#6EE7B7", fontWeight: "700", display: "inline-flex", alignItems: "center", gap: "5px" }}>
+              <FiGlobe size={13} /> Public (All Users)
+            </span>
             <FiGlobe size={18} color="#10B981" />
           </div>
           <div style={{ fontSize: "1.6rem", fontWeight: "800", color: "#10B981", marginTop: "4px" }}>
@@ -426,29 +437,84 @@ export default function WallpapersTab({ password }) {
           {/* Status Pills */}
           <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap" }}>
             {[
-              { id: "all", label: "All Access" },
-              { id: "draft", label: "🔒 Drafts" },
-              { id: "restricted", label: "👥 Restricted" },
-              { id: "published", label: "🌐 Public" }
-            ].map((st) => (
-              <button
-                key={st.id}
-                type="button"
-                onClick={() => setSelectedStatus(st.id)}
-                style={{
-                  padding: "6px 12px",
-                  borderRadius: "6px",
-                  fontSize: "0.78rem",
-                  fontWeight: selectedStatus === st.id ? "700" : "500",
-                  background: selectedStatus === st.id ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.04)",
-                  border: selectedStatus === st.id ? "1px solid var(--accent-mint)" : "1px solid rgba(255,255,255,0.08)",
-                  color: selectedStatus === st.id ? "var(--accent-mint)" : "var(--text-sub)",
-                  cursor: "pointer"
-                }}
-              >
-                {st.label}
-              </button>
-            ))}
+              { id: "all", label: "All Access", icon: null },
+              { id: "draft", label: "Drafts", icon: FiLock },
+              { id: "restricted", label: "Restricted", icon: FiUsers },
+              { id: "published", label: "Public", icon: FiGlobe }
+            ].map((st) => {
+              const Icon = st.icon;
+              return (
+                <button
+                  key={st.id}
+                  type="button"
+                  onClick={() => setSelectedStatus(st.id)}
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: "6px",
+                    fontSize: "0.78rem",
+                    fontWeight: selectedStatus === st.id ? "700" : "500",
+                    background: selectedStatus === st.id ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.04)",
+                    border: selectedStatus === st.id ? "1px solid var(--accent-mint)" : "1px solid rgba(255,255,255,0.08)",
+                    color: selectedStatus === st.id ? "var(--accent-mint)" : "var(--text-sub)",
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "5px"
+                  }}
+                >
+                  {Icon && <Icon size={12} />}
+                  <span>{st.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* View Mode Toggle */}
+          <div style={{ display: "inline-flex", background: "rgba(13, 17, 24, 0.7)", borderRadius: "8px", padding: "2px", border: "1px solid rgba(255, 255, 255, 0.08)" }}>
+            <button
+              type="button"
+              onClick={() => setViewMode("cards")}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "5px",
+                fontSize: "0.75rem",
+                fontWeight: "600",
+                padding: "6px 12px",
+                borderRadius: "6px",
+                border: "none",
+                background: viewMode === "cards" ? "rgba(45, 212, 191, 0.15)" : "transparent",
+                color: viewMode === "cards" ? "var(--accent-mint)" : "var(--text-muted)",
+                cursor: "pointer",
+                transition: "all 0.15s"
+              }}
+              title="Card Grid View"
+            >
+              <FiGrid size={13} />
+              <span>Cards</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("list")}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "5px",
+                fontSize: "0.75rem",
+                fontWeight: "600",
+                padding: "6px 12px",
+                borderRadius: "6px",
+                border: "none",
+                background: viewMode === "list" ? "rgba(45, 212, 191, 0.15)" : "transparent",
+                color: viewMode === "list" ? "var(--accent-mint)" : "var(--text-muted)",
+                cursor: "pointer",
+                transition: "all 0.15s"
+              }}
+              title="Table List View"
+            >
+              <FiList size={13} />
+              <span>List</span>
+            </button>
           </div>
 
           {/* Category Filter */}
@@ -488,7 +554,7 @@ export default function WallpapersTab({ password }) {
         </form>
       </div>
 
-      {/* Main Wallpaper Grid */}
+      {/* Main Wallpaper Content: Table or Grid */}
       {loading ? (
         <div style={{ textAlign: "center", padding: "4rem 1rem", color: "var(--text-sub)" }}>
           <FiRefreshCw size={28} className="spin" style={{ margin: "0 auto 12px auto", display: "block" }} />
@@ -509,6 +575,107 @@ export default function WallpapersTab({ password }) {
             No wallpapers matched your active search or filter criteria.
           </div>
         </div>
+      ) : viewMode === "list" ? (
+        /* Table List View */
+        <div className="mission-card" style={{ padding: "0", overflow: "hidden" }}>
+          <div style={{ overflowX: "auto" }}>
+            <table className="glass-table">
+              <thead>
+                <tr>
+                  <th style={{ width: "45px", textAlign: "center" }}>#</th>
+                  <th style={{ width: "60px" }}>Preview</th>
+                  <th>Title & ID</th>
+                  <th>Category</th>
+                  <th>Access Rule</th>
+                  <th>Allowed Users</th>
+                  <th>Blocked Users</th>
+                  <th style={{ textAlign: "right" }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {wallpapers.map((wp, idx) => {
+                  const isDraft = wp.status === "draft";
+                  const isRestricted = wp.status === "restricted";
+                  const isPublished = wp.status === "published";
+
+                  return (
+                    <tr key={wp.wallpaperId}>
+                      <td style={{ textAlign: "center", color: "var(--text-sub)", fontSize: "0.75rem", fontWeight: "700" }}>
+                        #{(page - 1) * 20 + idx + 1}
+                      </td>
+                      <td>
+                        <div style={{ width: "40px", height: "56px", borderRadius: "6px", overflow: "hidden", background: "#0E0B16" }}>
+                          {wp.thumbUrl ? (
+                            <img src={wp.thumbUrl} alt={wp.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          ) : (
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "var(--text-sub)" }}>
+                              <FiImage size={16} />
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: "700", color: "#ffffff", fontSize: "0.85rem" }}>{wp.title}</div>
+                        <div style={{ fontSize: "0.72rem", color: "var(--text-sub)", fontFamily: "JetBrains Mono" }}>{wp.wallpaperId}</div>
+                      </td>
+                      <td style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                        {wp.category || "General"}
+                      </td>
+                      <td>
+                        <span
+                          className="status-pill"
+                          style={{
+                            background: isPublished
+                              ? "rgba(16, 185, 129, 0.15)"
+                              : isRestricted
+                              ? "rgba(139, 92, 246, 0.15)"
+                              : "rgba(245, 158, 11, 0.15)",
+                            color: isPublished ? "#34d399" : isRestricted ? "#c084fc" : "#fbbf24",
+                            border: isPublished
+                              ? "1px solid rgba(16, 185, 129, 0.3)"
+                              : isRestricted
+                              ? "1px solid rgba(139, 92, 246, 0.3)"
+                              : "1px solid rgba(245, 158, 11, 0.3)"
+                          }}
+                        >
+                          {isPublished ? <><FiGlobe size={10} style={{ marginRight: 3 }} /> Public</> : isRestricted ? <><FiUsers size={10} style={{ marginRight: 3 }} /> Restricted</> : <><FiLock size={10} style={{ marginRight: 3 }} /> Draft</>}
+                        </span>
+                      </td>
+                      <td style={{ fontSize: "0.78rem" }}>
+                        {isRestricted ? (
+                          <span style={{ color: "var(--accent-mint)", fontWeight: "600", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                            <FiUsers size={12} /> {wp.allowedUsers?.length || 0} users
+                          </span>
+                        ) : (
+                          <span style={{ color: "var(--text-sub)" }}>All</span>
+                        )}
+                      </td>
+                      <td style={{ fontSize: "0.78rem", color: (wp.blockedUsers?.length || 0) > 0 ? "var(--accent-rose)" : "var(--text-sub)" }}>
+                        {(wp.blockedUsers?.length || 0) > 0 ? (
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                            <FiSlash size={12} /> {wp.blockedUsers.length} blocked
+                          </span>
+                        ) : (
+                          "0"
+                        )}
+                      </td>
+                      <td style={{ textAlign: "right" }}>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenModal(wp)}
+                          className="admin-action-btn"
+                          style={{ fontSize: "0.74rem", padding: "4px 10px", background: "rgba(139, 92, 246, 0.15)", color: "#c084fc", borderColor: "rgba(139, 92, 246, 0.3)" }}
+                        >
+                          Manage Access
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       ) : (
         <div
           style={{
@@ -517,7 +684,7 @@ export default function WallpapersTab({ password }) {
             gap: "1.1rem"
           }}
         >
-          {wallpapers.map((wp) => {
+          {wallpapers.map((wp, idx) => {
             const isDraft = wp.status === "draft";
             const isRestricted = wp.status === "restricted";
             const isPublished = wp.status === "published";
@@ -555,58 +722,73 @@ export default function WallpapersTab({ password }) {
                   )}
 
                   {/* Status Badge Over Thumbnail */}
-                  <div style={{ position: "absolute", top: "10px", left: "10px" }}>
-                    {isDraft && (
+                  <div style={{ position: "absolute", top: "10px", left: "10px", right: "10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ display: "flex", gap: "6px" }}>
                       <span
                         style={{
-                          background: "rgba(245, 158, 11, 0.9)",
-                          color: "#000000",
-                          padding: "3px 8px",
+                          background: "rgba(15, 20, 28, 0.85)",
+                          color: "var(--accent-mint)",
+                          padding: "3px 6px",
                           borderRadius: "4px",
                           fontSize: "0.72rem",
                           fontWeight: "800",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "4px"
+                          border: "1px solid rgba(45, 212, 191, 0.3)"
                         }}
                       >
-                        <FiLock size={12} /> UNPUBLISHED
+                        #{(page - 1) * 20 + idx + 1}
                       </span>
-                    )}
-                    {isRestricted && (
-                      <span
-                        style={{
-                          background: "rgba(139, 92, 246, 0.95)",
-                          color: "#ffffff",
-                          padding: "3px 8px",
-                          borderRadius: "4px",
-                          fontSize: "0.72rem",
-                          fontWeight: "800",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "4px"
-                        }}
-                      >
-                        <FiUsers size={12} /> RESTRICTED ({wp.allowedUsers?.length || 0})
-                      </span>
-                    )}
-                    {isPublished && (
-                      <span
-                        style={{
-                          background: "rgba(16, 185, 129, 0.95)",
-                          color: "#000000",
-                          padding: "3px 8px",
-                          borderRadius: "4px",
-                          fontSize: "0.72rem",
-                          fontWeight: "800",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "4px"
-                        }}
-                      >
-                        <FiGlobe size={12} /> PUBLIC (ALL)
-                      </span>
-                    )}
+                      {isDraft && (
+                        <span
+                          style={{
+                            background: "rgba(245, 158, 11, 0.9)",
+                            color: "#000000",
+                            padding: "3px 8px",
+                            borderRadius: "4px",
+                            fontSize: "0.72rem",
+                            fontWeight: "800",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "4px"
+                          }}
+                        >
+                          <FiLock size={12} /> Draft
+                        </span>
+                      )}
+                      {isRestricted && (
+                        <span
+                          style={{
+                            background: "rgba(139, 92, 246, 0.9)",
+                            color: "#ffffff",
+                            padding: "3px 8px",
+                            borderRadius: "4px",
+                            fontSize: "0.72rem",
+                            fontWeight: "800",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "4px"
+                          }}
+                        >
+                          <FiUsers size={12} /> Restricted
+                        </span>
+                      )}
+                      {isPublished && (
+                        <span
+                          style={{
+                            background: "rgba(16, 185, 129, 0.9)",
+                            color: "#ffffff",
+                            padding: "3px 8px",
+                            borderRadius: "4px",
+                            fontSize: "0.72rem",
+                            fontWeight: "800",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "4px"
+                          }}
+                        >
+                          <FiGlobe size={12} /> Public
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Category Pill */}
@@ -952,8 +1134,8 @@ export default function WallpapersTab({ password }) {
                   }}
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <label style={{ fontSize: "0.85rem", fontWeight: "700", color: "#C4B5FD" }}>
-                      👥 Allowed Users ({allowedUsers.length}):
+                    <label style={{ fontSize: "0.85rem", fontWeight: "700", color: "#C4B5FD", display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                      <FiUsers size={14} /> Allowed Users ({allowedUsers.length}):
                     </label>
                     <span style={{ fontSize: "0.72rem", color: "var(--text-sub)" }}>
                       Only these registered emails will unlock this wallpaper
@@ -994,10 +1176,13 @@ export default function WallpapersTab({ password }) {
                         padding: "8px 14px",
                         fontWeight: "700",
                         fontSize: "0.8rem",
-                        cursor: "pointer"
+                        cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px"
                       }}
                     >
-                      + Grant
+                      <FiUserPlus size={12} /> Grant
                     </button>
                   </div>
 
@@ -1020,10 +1205,14 @@ export default function WallpapersTab({ password }) {
                               borderRadius: "4px",
                               padding: "2px 6px",
                               fontSize: "0.7rem",
-                              cursor: isAlreadyAdded ? "default" : "pointer"
+                              cursor: isAlreadyAdded ? "default" : "pointer",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "3px"
                             }}
                           >
-                            {isAlreadyAdded ? `✓ ${u}` : `+ ${u}`}
+                            {isAlreadyAdded ? <FiCheck size={10} /> : <FiUserPlus size={10} />}
+                            <span>{u}</span>
                           </button>
                         );
                       })}
@@ -1032,8 +1221,9 @@ export default function WallpapersTab({ password }) {
 
                   {/* List of currently granted users */}
                   {allowedUsers.length === 0 ? (
-                    <div style={{ fontSize: "0.78rem", color: "#F87171", padding: "6px 0" }}>
-                      ⚠️ No users assigned yet. Add at least one user above.
+                    <div style={{ fontSize: "0.78rem", color: "#F87171", padding: "6px 0", display: "flex", alignItems: "center", gap: "5px" }}>
+                      <FiAlertTriangle size={13} />
+                      <span>No users assigned yet. Add at least one user above.</span>
                     </div>
                   ) : (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "4px" }}>
@@ -1087,8 +1277,8 @@ export default function WallpapersTab({ password }) {
                 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <label style={{ fontSize: "0.82rem", fontWeight: "700", color: "#FCA5A5" }}>
-                    🚫 Blocked / Excluded Users ({blockedUsers.length}):
+                  <label style={{ fontSize: "0.82rem", fontWeight: "700", color: "#FCA5A5", display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                    <FiSlash size={13} /> Blocked / Excluded Users ({blockedUsers.length}):
                   </label>
                   <span style={{ fontSize: "0.7rem", color: "var(--text-sub)" }}>
                     Deny access even if wallpaper is set to Public
@@ -1189,7 +1379,7 @@ export default function WallpapersTab({ password }) {
                       onChange={(e) => setSendNotif(e.target.checked)}
                       style={{ width: "16px", height: "16px", accentColor: "#10B981", cursor: "pointer" }}
                     />
-                    <span>🔔 Send Matching Push Notification Banner</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><FiBell size={13} /> Send Matching Push Notification Banner</span>
                   </label>
                   <span style={{ fontSize: "0.72rem", color: "var(--text-sub)" }}>
                     Target: {accessMode === "published" ? "All Users" : `${allowedUsers.length} Assigned User(s)`}
@@ -1261,8 +1451,8 @@ export default function WallpapersTab({ password }) {
 
                     {/* Live Mobile Notification Shade Preview */}
                     <div style={{ marginTop: "6px" }}>
-                      <span style={{ fontSize: "0.7rem", color: "var(--accent-mint)", fontWeight: "700" }}>
-                        📱 Mobile Device Lock Screen / Notification Shade Preview:
+                      <span style={{ fontSize: "0.7rem", color: "var(--accent-mint)", fontWeight: "700", display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                        <FiSmartphone size={13} /> Mobile Device Lock Screen / Notification Shade Preview:
                       </span>
                       <div
                         style={{

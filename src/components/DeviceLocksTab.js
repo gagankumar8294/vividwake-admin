@@ -13,7 +13,10 @@ import {
   FiAward,
   FiUser,
   FiTrash2,
-  FiX
+  FiX,
+  FiList,
+  FiGrid,
+  FiClock
 } from "react-icons/fi";
 import { useModal } from "@/components/ModalContext";
 
@@ -23,6 +26,7 @@ export default function DeviceLocksTab({ password, onActionSuccess }) {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("ALL");
+  const [viewMode, setViewMode] = useState("list"); // 'list' | 'cards'
   const [processingId, setProcessingId] = useState(null);
   const [statusMsg, setStatusMsg] = useState("");
   const [showPurgeModal, setShowPurgeModal] = useState(false);
@@ -283,217 +287,465 @@ export default function DeviceLocksTab({ password, onActionSuccess }) {
           />
         </div>
 
-        <div style={{ display: "flex", gap: "6px" }}>
-          {["ALL", "ACTIVE", "VIP", "BANNED"].map((f) => (
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+          {/* View Mode Toggle (List vs Cards) */}
+          <div style={{ display: "inline-flex", background: "rgba(13, 17, 24, 0.7)", borderRadius: "8px", padding: "2px", border: "1px solid rgba(255, 255, 255, 0.08)" }}>
             <button
-              key={f}
-              onClick={() => setFilter(f)}
+              type="button"
+              onClick={() => setViewMode("list")}
               style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "5px",
                 fontSize: "0.75rem",
                 fontWeight: "600",
                 padding: "4px 10px",
                 borderRadius: "6px",
-                border: filter === f ? "1px solid var(--accent-mint)" : "1px solid rgba(255, 255, 255, 0.08)",
-                background: filter === f ? "rgba(45, 212, 191, 0.12)" : "transparent",
-                color: filter === f ? "var(--accent-mint)" : "var(--text-muted)",
+                border: "none",
+                background: viewMode === "list" ? "rgba(45, 212, 191, 0.15)" : "transparent",
+                color: viewMode === "list" ? "var(--accent-mint)" : "var(--text-muted)",
                 cursor: "pointer",
                 transition: "all 0.15s"
               }}
+              title="Table List View"
             >
-              {f}
+              <FiList size={13} />
+              <span>List</span>
             </button>
-          ))}
+            <button
+              type="button"
+              onClick={() => setViewMode("cards")}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "5px",
+                fontSize: "0.75rem",
+                fontWeight: "600",
+                padding: "4px 10px",
+                borderRadius: "6px",
+                border: "none",
+                background: viewMode === "cards" ? "rgba(45, 212, 191, 0.15)" : "transparent",
+                color: viewMode === "cards" ? "var(--accent-mint)" : "var(--text-muted)",
+                cursor: "pointer",
+                transition: "all 0.15s"
+              }}
+              title="Card Grid View"
+            >
+              <FiGrid size={13} />
+              <span>Cards</span>
+            </button>
+          </div>
+
+          {/* Filter Pills */}
+          <div style={{ display: "flex", gap: "6px" }}>
+            {["ALL", "ACTIVE", "VIP", "BANNED"].map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                style={{
+                  fontSize: "0.75rem",
+                  fontWeight: "600",
+                  padding: "4px 10px",
+                  borderRadius: "6px",
+                  border: filter === f ? "1px solid var(--accent-mint)" : "1px solid rgba(255, 255, 255, 0.08)",
+                  background: filter === f ? "rgba(45, 212, 191, 0.12)" : "transparent",
+                  color: filter === f ? "var(--accent-mint)" : "var(--text-muted)",
+                  cursor: "pointer",
+                  transition: "all 0.15s"
+                }}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Main Table */}
-      <div className="mission-card" style={{ padding: "0", overflow: "hidden" }}>
-        <div style={{ overflowX: "auto" }}>
-          <table className="glass-table">
-            <thead>
-              <tr>
-                <th>User / Account</th>
-                <th>Physical Device</th>
-                <th>Hardware Fingerprint</th>
-                <th>Tier</th>
-                <th>Status</th>
-                <th>Bound Since</th>
-                <th style={{ textAlign: "right" }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredLocks.length === 0 ? (
+      {/* Main Content: Table or Card Grid */}
+      {viewMode === "list" ? (
+        <div className="mission-card" style={{ padding: "0", overflow: "hidden" }}>
+          <div style={{ overflowX: "auto" }}>
+            <table className="glass-table">
+              <thead>
                 <tr>
-                  <td colSpan="7" style={{ textAlign: "center", padding: "2.5rem", color: "var(--text-sub)" }}>
-                    {loading ? "Loading device locks..." : "No matching device lock records found."}
-                  </td>
+                  <th style={{ width: "45px", textAlign: "center" }}>#</th>
+                  <th>User / Account</th>
+                  <th>Physical Device</th>
+                  <th>Hardware Fingerprint</th>
+                  <th>Tier</th>
+                  <th>Status</th>
+                  <th>Bound Since</th>
+                  <th style={{ textAlign: "right" }}>Actions</th>
                 </tr>
-              ) : (
-                filteredLocks.map((lock) => {
-                  const isBanned = lock.isBanned;
-                  const isVip = lock.tier === "VIP";
-                  const isProcessing = processingId === lock._id;
+              </thead>
+              <tbody>
+                {filteredLocks.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" style={{ textAlign: "center", padding: "2.5rem", color: "var(--text-sub)" }}>
+                      {loading ? "Loading device locks..." : "No matching device lock records found."}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredLocks.map((lock, idx) => {
+                    const isBanned = lock.isBanned;
+                    const isVip = lock.tier === "VIP";
+                    const isProcessing = processingId === lock._id;
 
-                  return (
-                    <tr key={lock._id}>
-                      <td>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                          <div style={{
-                            width: "32px",
-                            height: "32px",
-                            borderRadius: "50%",
-                            background: "rgba(45, 212, 191, 0.12)",
-                            color: "var(--accent-mint)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: "0.85rem",
-                            fontWeight: "700"
-                          }}>
-                            {lock.boundEmail ? lock.boundEmail[0].toUpperCase() : "U"}
-                          </div>
-                          <div>
-                            <div style={{ fontWeight: "600", color: "#ffffff", fontSize: "0.85rem" }}>
-                              {lock.boundEmail || "Anonymous Guest"}
-                            </div>
-                            <div style={{ fontSize: "0.7rem", color: "var(--text-sub)" }}>
-                              UID: {lock.boundUserId ? lock.boundUserId.substring(0, 10) + "..." : "Guest"}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td>
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                          <FiSmartphone size={14} color="var(--accent-mint)" />
-                          <span style={{ fontWeight: "500" }}>{lock.deviceBrand || "Android"} {lock.deviceModel || "Mobile"}</span>
-                        </div>
-                      </td>
-
-                      <td>
-                        <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.72rem", color: "var(--text-sub)", background: "rgba(0,0,0,0.3)", padding: "2px 6px", borderRadius: "4px" }}>
-                          {lock.hardwareFingerprint ? lock.hardwareFingerprint.substring(0, 16) + "..." : "Unknown"}
-                        </span>
-                      </td>
-
-                      <td>
-                        <span className={`status-pill ${isVip ? "vip" : ""}`}>
-                          {isVip ? "★ VIP UNLIMITED" : lock.tier || "FREE"}
-                        </span>
-                      </td>
-
-                      <td>
-                        {isBanned ? (
-                          <span className="status-pill banned">
-                            ● BANNED
-                          </span>
-                        ) : lock.status === "ACTIVE" ? (
-                          <span className="status-pill active">
-                            ● ACTIVE BOND
-                          </span>
-                        ) : (
-                          <span className="status-pill" style={{ background: "rgba(255,255,255,0.06)", color: "var(--text-sub)" }}>
-                            {lock.status || "UNLOCKED"}
-                          </span>
-                        )}
-                      </td>
-
-                      <td style={{ fontSize: "0.75rem", color: "var(--text-sub)" }}>
-                        {lock.firstBoundAt ? new Date(lock.firstBoundAt).toLocaleDateString() : "Recent"}
-                      </td>
-
-                      <td style={{ textAlign: "right" }}>
-                        <div style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
-                          {/* Kill Switch Toggle */}
-                          <button
-                            onClick={() => handleAction(isBanned ? "unban" : "ban", lock)}
-                            disabled={isProcessing}
-                            style={{
-                              fontSize: "0.72rem",
-                              fontWeight: "700",
-                              background: isBanned ? "rgba(16, 185, 129, 0.15)" : "rgba(239, 68, 68, 0.15)",
-                              color: isBanned ? "#34d399" : "var(--accent-rose)",
-                              border: isBanned ? "1px solid rgba(16, 185, 129, 0.3)" : "1px solid rgba(239, 68, 68, 0.3)",
-                              padding: "4px 8px",
-                              borderRadius: "6px",
-                              cursor: "pointer",
-                              transition: "all 0.15s"
-                            }}
-                            title={isBanned ? "Restore app access for this device" : "Instant remote kill switch"}
-                          >
-                            {isProcessing ? "..." : isBanned ? "Restore" : "Kill Switch"}
-                          </button>
-
-                          {/* VIP Tier Toggle */}
-                          <button
-                            onClick={() => handleAction("set-tier", lock, { tier: isVip ? "FREE" : "VIP" })}
-                            disabled={isProcessing}
-                            style={{
-                              fontSize: "0.72rem",
-                              fontWeight: "700",
-                              background: "rgba(245, 158, 11, 0.12)",
-                              color: "#fbbf24",
-                              border: "1px solid rgba(245, 158, 11, 0.25)",
-                              padding: "4px 8px",
-                              borderRadius: "6px",
-                              cursor: "pointer"
-                            }}
-                            title={isVip ? "Demote to Free" : "Grant VIP Unlimited"}
-                          >
-                            {isVip ? "Revoke VIP" : "Grant VIP"}
-                          </button>
-
-                          {/* Release Device Lock */}
-                          <button
-                            onClick={() => handleAction("unlock", lock)}
-                            disabled={isProcessing}
-                            style={{
-                              fontSize: "0.72rem",
-                              fontWeight: "600",
-                              background: "rgba(255, 255, 255, 0.05)",
-                              color: "var(--text-muted)",
-                              border: "1px solid rgba(255, 255, 255, 0.1)",
-                              padding: "4px 8px",
-                              borderRadius: "6px",
-                              cursor: "pointer"
-                            }}
-                            title="Release 1-to-1 lock to allow user to switch phones"
-                          >
-                            Release
-                          </button>
-
-                          {/* Purge / Delete User Completely */}
-                          <button
-                            onClick={() => handleAction("purge-user", lock)}
-                            disabled={isProcessing}
-                            style={{
-                              fontSize: "0.72rem",
-                              fontWeight: "700",
-                              background: "rgba(239, 68, 68, 0.15)",
-                              color: "#ef4444",
-                              border: "1px solid rgba(239, 68, 68, 0.3)",
-                              padding: "4px 8px",
-                              borderRadius: "6px",
-                              cursor: "pointer",
-                              display: "inline-flex",
+                    return (
+                      <tr key={lock._id}>
+                        <td style={{ textAlign: "center", color: "var(--text-sub)", fontSize: "0.75rem", fontWeight: "700" }}>
+                          #{idx + 1}
+                        </td>
+                        <td>
+                          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                            <div style={{
+                              width: "32px",
+                              height: "32px",
+                              borderRadius: "50%",
+                              background: "rgba(45, 212, 191, 0.12)",
+                              color: "var(--accent-mint)",
+                              display: "flex",
                               alignItems: "center",
-                              gap: "4px"
-                            }}
-                            title="Permanently erase user and lock from database so they can re-register from scratch"
-                          >
-                            <FiTrash2 size={11} />
-                            <span>Purge</span>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                              justifyContent: "center",
+                              fontSize: "0.85rem",
+                              fontWeight: "700"
+                            }}>
+                              {lock.boundEmail ? lock.boundEmail[0].toUpperCase() : "U"}
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: "600", color: "#ffffff", fontSize: "0.85rem" }}>
+                                {lock.boundEmail || "Anonymous Guest"}
+                              </div>
+                              <div style={{ fontSize: "0.7rem", color: "var(--text-sub)" }}>
+                                UID: {lock.boundUserId ? lock.boundUserId.substring(0, 10) + "..." : "Guest"}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td>
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <FiSmartphone size={14} color="var(--accent-mint)" />
+                            <span style={{ fontWeight: "500" }}>{lock.deviceBrand || "Android"} {lock.deviceModel || "Mobile"}</span>
+                          </div>
+                        </td>
+
+                        <td>
+                          <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.72rem", color: "var(--text-sub)", background: "rgba(0,0,0,0.3)", padding: "2px 6px", borderRadius: "4px" }}>
+                            {lock.hardwareFingerprint ? lock.hardwareFingerprint.substring(0, 16) + "..." : "Unknown"}
+                          </span>
+                        </td>
+
+                        <td>
+                          <span className={`status-pill ${isVip ? "vip" : ""}`}>
+                            {isVip ? (
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                                <FiAward size={12} /> VIP UNLIMITED
+                              </span>
+                            ) : (
+                              lock.tier || "FREE"
+                            )}
+                          </span>
+                        </td>
+
+                        <td>
+                          {isBanned ? (
+                            <span className="status-pill banned">
+                              <FiShield size={11} style={{ marginRight: 4, verticalAlign: -1 }} /> BANNED
+                            </span>
+                          ) : lock.status === "ACTIVE" ? (
+                            <span className="status-pill active">
+                              <FiCheckCircle size={11} style={{ marginRight: 4, verticalAlign: -1 }} /> ACTIVE BOND
+                            </span>
+                          ) : (
+                            <span className="status-pill" style={{ background: "rgba(255,255,255,0.06)", color: "var(--text-sub)" }}>
+                              {lock.status || "UNLOCKED"}
+                            </span>
+                          )}
+                        </td>
+
+                        <td style={{ fontSize: "0.75rem", color: "var(--text-sub)" }}>
+                          {lock.firstBoundAt ? new Date(lock.firstBoundAt).toLocaleDateString() : "Recent"}
+                        </td>
+
+                        <td style={{ textAlign: "right" }}>
+                          <div style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
+                            {/* Kill Switch Toggle */}
+                            <button
+                              onClick={() => handleAction(isBanned ? "unban" : "ban", lock)}
+                              disabled={isProcessing}
+                              style={{
+                                fontSize: "0.72rem",
+                                fontWeight: "700",
+                                background: isBanned ? "rgba(16, 185, 129, 0.15)" : "rgba(239, 68, 68, 0.15)",
+                                color: isBanned ? "#34d399" : "var(--accent-rose)",
+                                border: isBanned ? "1px solid rgba(16, 185, 129, 0.3)" : "1px solid rgba(239, 68, 68, 0.3)",
+                                padding: "4px 8px",
+                                borderRadius: "6px",
+                                cursor: "pointer",
+                                transition: "all 0.15s"
+                              }}
+                              title={isBanned ? "Restore app access for this device" : "Instant remote kill switch"}
+                            >
+                              {isProcessing ? "..." : isBanned ? "Restore" : "Kill Switch"}
+                            </button>
+
+                            {/* VIP Tier Toggle */}
+                            <button
+                              onClick={() => handleAction("set-tier", lock, { tier: isVip ? "FREE" : "VIP" })}
+                              disabled={isProcessing}
+                              style={{
+                                fontSize: "0.72rem",
+                                fontWeight: "700",
+                                background: "rgba(245, 158, 11, 0.12)",
+                                color: "#fbbf24",
+                                border: "1px solid rgba(245, 158, 11, 0.25)",
+                                padding: "4px 8px",
+                                borderRadius: "6px",
+                                cursor: "pointer"
+                              }}
+                              title={isVip ? "Demote to Free" : "Grant VIP Unlimited"}
+                            >
+                              {isVip ? "Revoke VIP" : "Grant VIP"}
+                            </button>
+
+                            {/* Release Device Lock */}
+                            <button
+                              onClick={() => handleAction("unlock", lock)}
+                              disabled={isProcessing}
+                              style={{
+                                fontSize: "0.72rem",
+                                fontWeight: "600",
+                                background: "rgba(255, 255, 255, 0.05)",
+                                color: "var(--text-muted)",
+                                border: "1px solid rgba(255, 255, 255, 0.1)",
+                                padding: "4px 8px",
+                                borderRadius: "6px",
+                                cursor: "pointer"
+                              }}
+                              title="Release 1-to-1 lock to allow user to switch phones"
+                            >
+                              Release
+                            </button>
+
+                            {/* Purge / Delete User Completely */}
+                            <button
+                              onClick={() => handleAction("purge-user", lock)}
+                              disabled={isProcessing}
+                              style={{
+                                fontSize: "0.72rem",
+                                fontWeight: "700",
+                                background: "rgba(239, 68, 68, 0.15)",
+                                color: "#ef4444",
+                                border: "1px solid rgba(239, 68, 68, 0.3)",
+                                padding: "4px 8px",
+                                borderRadius: "6px",
+                                cursor: "pointer",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "4px"
+                              }}
+                              title="Permanently erase user and lock from database so they can re-register from scratch"
+                            >
+                              <FiTrash2 size={11} />
+                              <span>Purge</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      ) : (
+        /* Card Grid View */
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "1rem" }}>
+          {filteredLocks.length === 0 ? (
+            <div className="mission-card" style={{ gridColumn: "1 / -1", textAlign: "center", padding: "3rem", color: "var(--text-sub)" }}>
+              {loading ? "Loading device locks..." : "No matching device lock records found."}
+            </div>
+          ) : (
+            filteredLocks.map((lock, idx) => {
+              const isBanned = lock.isBanned;
+              const isVip = lock.tier === "VIP";
+              const isProcessing = processingId === lock._id;
+
+              return (
+                <div
+                  key={lock._id}
+                  className="mission-card"
+                  style={{
+                    padding: "1.15rem",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.9rem",
+                    border: isBanned ? "1px solid rgba(239, 68, 68, 0.35)" : isVip ? "1px solid rgba(251, 191, 36, 0.3)" : "1px solid rgba(255, 255, 255, 0.08)",
+                    position: "relative"
+                  }}
+                >
+                  {/* Card Header: # Serial and Status */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "0.75rem", fontWeight: "800", color: "var(--accent-mint)", background: "rgba(45, 212, 191, 0.1)", padding: "2px 8px", borderRadius: "5px", border: "1px solid rgba(45, 212, 191, 0.2)" }}>
+                      #{idx + 1}
+                    </span>
+                    <div style={{ display: "flex", gap: "6px" }}>
+                      <span className={`status-pill ${isVip ? "vip" : ""}`} style={{ fontSize: "0.7rem", padding: "2px 6px" }}>
+                        {isVip ? <><FiAward size={11} style={{ marginRight: 2 }} /> VIP</> : lock.tier || "FREE"}
+                      </span>
+                      {isBanned ? (
+                        <span className="status-pill banned" style={{ fontSize: "0.7rem", padding: "2px 6px" }}>
+                          <FiShield size={10} style={{ marginRight: 2 }} /> BANNED
+                        </span>
+                      ) : (
+                        <span className="status-pill active" style={{ fontSize: "0.7rem", padding: "2px 6px" }}>
+                          <FiCheckCircle size={10} style={{ marginRight: 2 }} /> ACTIVE
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* User Info */}
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div style={{
+                      width: "36px",
+                      height: "36px",
+                      borderRadius: "50%",
+                      background: "rgba(45, 212, 191, 0.15)",
+                      color: "var(--accent-mint)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "0.95rem",
+                      fontWeight: "700",
+                      flexShrink: 0
+                    }}>
+                      {lock.boundEmail ? lock.boundEmail[0].toUpperCase() : "U"}
+                    </div>
+                    <div style={{ overflow: "hidden" }}>
+                      <div style={{ fontWeight: "700", color: "#ffffff", fontSize: "0.88rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {lock.boundEmail || "Anonymous Guest"}
+                      </div>
+                      <div style={{ fontSize: "0.7rem", color: "var(--text-sub)", display: "flex", alignItems: "center", gap: "6px" }}>
+                        <FiSmartphone size={11} color="var(--accent-mint)" />
+                        <span>{lock.deviceBrand || "Android"} {lock.deviceModel || "Mobile"}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Hardware Fingerprint Chip */}
+                  <div style={{ background: "rgba(0, 0, 0, 0.35)", padding: "6px 10px", borderRadius: "6px", border: "1px solid rgba(255, 255, 255, 0.05)" }}>
+                    <div style={{ fontSize: "0.68rem", color: "var(--text-sub)", textTransform: "uppercase", fontWeight: "600" }}>Hardware Hash</div>
+                    <div style={{ fontFamily: "JetBrains Mono, monospace", fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {lock.hardwareFingerprint || "Unknown"}
+                    </div>
+                  </div>
+
+                  {/* Footer Meta */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.72rem", color: "var(--text-sub)" }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                      <FiClock size={11} /> Bound: {lock.firstBoundAt ? new Date(lock.firstBoundAt).toLocaleDateString() : "Recent"}
+                    </span>
+                  </div>
+
+                  {/* Action Buttons Toolbar */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", marginTop: "auto", paddingTop: "6px", borderTop: "1px solid rgba(255, 255, 255, 0.06)" }}>
+                    <button
+                      onClick={() => handleAction(isBanned ? "unban" : "ban", lock)}
+                      disabled={isProcessing}
+                      style={{
+                        fontSize: "0.72rem",
+                        fontWeight: "700",
+                        background: isBanned ? "rgba(16, 185, 129, 0.15)" : "rgba(239, 68, 68, 0.15)",
+                        color: isBanned ? "#34d399" : "var(--accent-rose)",
+                        border: isBanned ? "1px solid rgba(16, 185, 129, 0.3)" : "1px solid rgba(239, 68, 68, 0.3)",
+                        padding: "6px 8px",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "4px"
+                      }}
+                    >
+                      <FiShield size={11} />
+                      <span>{isProcessing ? "..." : isBanned ? "Restore" : "Kill Switch"}</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleAction("set-tier", lock, { tier: isVip ? "FREE" : "VIP" })}
+                      disabled={isProcessing}
+                      style={{
+                        fontSize: "0.72rem",
+                        fontWeight: "700",
+                        background: "rgba(245, 158, 11, 0.12)",
+                        color: "#fbbf24",
+                        border: "1px solid rgba(245, 158, 11, 0.25)",
+                        padding: "6px 8px",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "4px"
+                      }}
+                    >
+                      <FiAward size={11} />
+                      <span>{isVip ? "Revoke VIP" : "Grant VIP"}</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleAction("unlock", lock)}
+                      disabled={isProcessing}
+                      style={{
+                        fontSize: "0.72rem",
+                        fontWeight: "600",
+                        background: "rgba(255, 255, 255, 0.05)",
+                        color: "var(--text-muted)",
+                        border: "1px solid rgba(255, 255, 255, 0.1)",
+                        padding: "6px 8px",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "4px"
+                      }}
+                    >
+                      <FiUnlock size={11} />
+                      <span>Release</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleAction("purge-user", lock)}
+                      disabled={isProcessing}
+                      style={{
+                        fontSize: "0.72rem",
+                        fontWeight: "700",
+                        background: "rgba(239, 68, 68, 0.15)",
+                        color: "#ef4444",
+                        border: "1px solid rgba(239, 68, 68, 0.3)",
+                        padding: "6px 8px",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "4px"
+                      }}
+                    >
+                      <FiTrash2 size={11} />
+                      <span>Purge</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
 
       {/* Manual User & Hardware Purge Modal */}
       {showPurgeModal && (
@@ -565,8 +817,9 @@ export default function DeviceLocksTab({ password, onActionSuccess }) {
                 />
               </div>
 
-              <div style={{ background: "rgba(239, 68, 68, 0.08)", border: "1px solid rgba(239, 68, 68, 0.2)", borderRadius: "8px", padding: "10px 12px", fontSize: "0.75rem", color: "#fca5a5" }}>
-                ⚠️ <strong>Warning:</strong> This cannot be undone. All active locks, session flows, and preferences for this account/hardware will be erased immediately.
+              <div style={{ background: "rgba(239, 68, 68, 0.08)", border: "1px solid rgba(239, 68, 68, 0.2)", borderRadius: "8px", padding: "10px 12px", fontSize: "0.75rem", color: "#fca5a5", display: "flex", alignItems: "flex-start", gap: "6px" }}>
+                <FiAlertTriangle size={14} style={{ flexShrink: 0, marginTop: "1px" }} />
+                <span><strong>Warning:</strong> This cannot be undone. All active locks, session flows, and preferences for this account/hardware will be erased immediately.</span>
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "0.5rem" }}>

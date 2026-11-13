@@ -27,13 +27,17 @@ import {
   FiAlertCircle,
   FiSliders,
   FiLock,
-  FiUnlock
+  FiUnlock,
+  FiList,
+  FiGrid,
+  FiAward
 } from "react-icons/fi";
 import { useModal } from "@/components/ModalContext";
 
 export default function CatalogManagerTab({ password }) {
   const { showConfirm, showAlert } = useModal();
   const [wallpapers, setWallpapers] = useState([]);
+  const [viewMode, setViewMode] = useState("cards"); // 'cards' | 'list'
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -721,10 +725,58 @@ export default function CatalogManagerTab({ password }) {
             <option value="draft">Draft (Hidden)</option>
             <option value="restricted">Restricted (VIP)</option>
           </select>
+
+          {/* View Mode Toggle: Cards vs List */}
+          <div style={{ display: "inline-flex", background: "rgba(13, 17, 24, 0.7)", borderRadius: "8px", padding: "2px", border: "1px solid rgba(255, 255, 255, 0.08)" }}>
+            <button
+              type="button"
+              onClick={() => setViewMode("cards")}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "5px",
+                fontSize: "0.75rem",
+                fontWeight: "600",
+                padding: "6px 12px",
+                borderRadius: "6px",
+                border: "none",
+                background: viewMode === "cards" ? "rgba(45, 212, 191, 0.15)" : "transparent",
+                color: viewMode === "cards" ? "var(--accent-mint)" : "var(--text-muted)",
+                cursor: "pointer",
+                transition: "all 0.15s"
+              }}
+              title="Card Grid View"
+            >
+              <FiGrid size={13} />
+              <span>Cards</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("list")}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "5px",
+                fontSize: "0.75rem",
+                fontWeight: "600",
+                padding: "6px 12px",
+                borderRadius: "6px",
+                border: "none",
+                background: viewMode === "list" ? "rgba(45, 212, 191, 0.15)" : "transparent",
+                color: viewMode === "list" ? "var(--accent-mint)" : "var(--text-muted)",
+                cursor: "pointer",
+                transition: "all 0.15s"
+              }}
+              title="Table List View"
+            >
+              <FiList size={13} />
+              <span>List</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Grid of Wallpaper Cards */}
+      {/* Grid or Table of Wallpaper Records */}
       {loading ? (
         <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--text-sub)" }}>
           <FiRefreshCw size={32} className="spin" style={{ margin: "0 auto 12px auto" }} />
@@ -747,6 +799,169 @@ export default function CatalogManagerTab({ password }) {
             No wallpapers matched your search or filter. Click &ldquo;Add New Wallpaper&rdquo; to create one.
           </p>
         </div>
+      ) : viewMode === "list" ? (
+        /* Table List View */
+        <div className="mission-card" style={{ padding: "0", overflow: "hidden" }}>
+          <div style={{ overflowX: "auto" }}>
+            <table className="glass-table">
+              <thead>
+                <tr>
+                  <th style={{ width: "45px", textAlign: "center" }}>#</th>
+                  <th style={{ width: "60px" }}>Preview</th>
+                  <th>Title & Wallpaper ID</th>
+                  <th>Category</th>
+                  <th>Status</th>
+                  <th>Access / Tier</th>
+                  <th>Specs</th>
+                  <th style={{ textAlign: "right" }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {wallpapers.map((wp, idx) => {
+                  const isPub = wp.status === "published";
+                  const isDraft = wp.status === "draft";
+
+                  return (
+                    <tr key={wp.wallpaperId}>
+                      <td style={{ textAlign: "center", color: "var(--text-sub)", fontSize: "0.75rem", fontWeight: "700" }}>
+                        #{(page - 1) * 20 + idx + 1}
+                      </td>
+                      <td>
+                        <div
+                          style={{
+                            width: "44px",
+                            height: "64px",
+                            borderRadius: "6px",
+                            overflow: "hidden",
+                            backgroundColor: "#090d16",
+                            cursor: "pointer",
+                            position: "relative"
+                          }}
+                          onClick={() => {
+                            setPreviewVideoUrl(wp.videoUrl);
+                            setPreviewTitle(wp.title);
+                          }}
+                          title="Click to preview video"
+                        >
+                          {wp.thumbUrl ? (
+                            <img src={wp.thumbUrl} alt={wp.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          ) : (
+                            <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-sub)" }}>
+                              <FiImage size={18} />
+                            </div>
+                          )}
+                          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <FiPlay size={12} color="#ffffff" />
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: "700", color: "#ffffff", fontSize: "0.86rem" }}>{wp.title}</div>
+                        <div style={{ fontSize: "0.72rem", color: "var(--text-sub)", fontFamily: "JetBrains Mono" }}>ID: {wp.wallpaperId}</div>
+                      </td>
+                      <td>
+                        <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{wp.category || "General"}</div>
+                        {wp.subCategory && <div style={{ fontSize: "0.7rem", color: "var(--text-sub)" }}>{wp.subCategory}</div>}
+                      </td>
+                      <td>
+                        <button
+                          onClick={() => handleToggleStatus(wp)}
+                          style={{
+                            padding: "3px 8px",
+                            borderRadius: "6px",
+                            fontSize: "0.7rem",
+                            fontWeight: "700",
+                            textTransform: "uppercase",
+                            border: "none",
+                            cursor: "pointer",
+                            backgroundColor: isPub
+                              ? "rgba(16, 185, 129, 0.15)"
+                              : isDraft
+                              ? "rgba(245, 158, 11, 0.15)"
+                              : "rgba(168, 85, 247, 0.15)",
+                            color: isPub ? "#34d399" : isDraft ? "#fbbf24" : "#c084fc"
+                          }}
+                        >
+                          {wp.status}
+                        </button>
+                      </td>
+                      <td>
+                        <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
+                          {wp.isFeatured && (
+                            <span style={{ fontSize: "0.7rem", fontWeight: "700", color: "#fbbf24", background: "rgba(234, 179, 8, 0.15)", padding: "2px 6px", borderRadius: "4px", display: "inline-flex", alignItems: "center", gap: "3px" }}>
+                              <FiStar size={11} /> Featured
+                            </span>
+                          )}
+                          {wp.isVipOnly && (
+                            <span style={{ fontSize: "0.7rem", fontWeight: "700", color: "#c084fc", background: "rgba(168, 85, 247, 0.15)", padding: "2px 6px", borderRadius: "4px", display: "inline-flex", alignItems: "center", gap: "3px" }}>
+                              <FiAward size={11} /> VIP
+                            </span>
+                          )}
+                          {!wp.isFeatured && !wp.isVipOnly && (
+                            <span style={{ fontSize: "0.7rem", color: "var(--text-sub)" }}>Standard</span>
+                          )}
+                        </div>
+                      </td>
+                      <td style={{ fontSize: "0.73rem", color: "var(--text-sub)" }}>
+                        <div>{wp.sizeDisplay || (wp.sizeBytes ? `${(wp.sizeBytes / 1024 / 1024).toFixed(1)} MB` : "—")}</div>
+                        <div>{wp.width || 1080}×{wp.height || 1920}</div>
+                      </td>
+                      <td style={{ textAlign: "right" }}>
+                        <div style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
+                          <button
+                            onClick={() => handleToggleFeatured(wp)}
+                            style={{
+                              padding: "4px 8px",
+                              borderRadius: "6px",
+                              border: "1px solid rgba(255, 255, 255, 0.08)",
+                              background: wp.isFeatured ? "rgba(234, 179, 8, 0.15)" : "transparent",
+                              color: wp.isFeatured ? "#fbbf24" : "var(--text-muted)",
+                              cursor: "pointer",
+                              fontSize: "0.72rem"
+                            }}
+                            title="Toggle Featured in Explore Store"
+                          >
+                            <FiStar size={12} />
+                          </button>
+                          <button
+                            onClick={() => openEditModal(wp)}
+                            style={{
+                              padding: "4px 8px",
+                              borderRadius: "6px",
+                              border: "1px solid rgba(255, 255, 255, 0.08)",
+                              background: "rgba(255, 255, 255, 0.05)",
+                              color: "var(--text-muted)",
+                              cursor: "pointer",
+                              fontSize: "0.72rem"
+                            }}
+                            title="Edit details"
+                          >
+                            <FiEdit2 size={12} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteWallpaper(wp)}
+                            style={{
+                              padding: "4px 8px",
+                              borderRadius: "6px",
+                              border: "1px solid rgba(239, 68, 68, 0.25)",
+                              background: "rgba(239, 68, 68, 0.12)",
+                              color: "var(--accent-rose)",
+                              cursor: "pointer",
+                              fontSize: "0.72rem"
+                            }}
+                            title="Delete wallpaper"
+                          >
+                            <FiTrash2 size={12} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       ) : (
         <div
           style={{
@@ -755,7 +970,7 @@ export default function CatalogManagerTab({ password }) {
             gap: "18px"
           }}
         >
-          {wallpapers.map((wp) => {
+          {wallpapers.map((wp, idx) => {
             const isPub = wp.status === "published";
             const isDraft = wp.status === "draft";
             const isRest = wp.status === "restricted";
@@ -856,23 +1071,38 @@ export default function CatalogManagerTab({ password }) {
                       pointerEvents: "none"
                     }}
                   >
-                    <span
-                      style={{
-                        padding: "3px 8px",
-                        borderRadius: "6px",
-                        fontSize: "0.7rem",
-                        fontWeight: "700",
-                        textTransform: "uppercase",
-                        backgroundColor: isPub
-                          ? "rgba(16, 185, 129, 0.9)"
-                          : isDraft
-                          ? "rgba(245, 158, 11, 0.9)"
-                          : "rgba(168, 85, 247, 0.9)",
-                        color: "#ffffff"
-                      }}
-                    >
-                      {wp.status}
-                    </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                      <span
+                        style={{
+                          padding: "3px 6px",
+                          borderRadius: "6px",
+                          fontSize: "0.7rem",
+                          fontWeight: "800",
+                          backgroundColor: "rgba(15, 20, 28, 0.85)",
+                          color: "var(--accent-mint)",
+                          border: "1px solid rgba(45, 212, 191, 0.3)"
+                        }}
+                      >
+                        #{(page - 1) * 20 + idx + 1}
+                      </span>
+                      <span
+                        style={{
+                          padding: "3px 8px",
+                          borderRadius: "6px",
+                          fontSize: "0.7rem",
+                          fontWeight: "700",
+                          textTransform: "uppercase",
+                          backgroundColor: isPub
+                            ? "rgba(16, 185, 129, 0.9)"
+                            : isDraft
+                            ? "rgba(245, 158, 11, 0.9)"
+                            : "rgba(168, 85, 247, 0.9)",
+                          color: "#ffffff"
+                        }}
+                      >
+                        {wp.status}
+                      </span>
+                    </div>
 
                     <div style={{ display: "flex", gap: "4px" }}>
                       {wp.isFeatured && (
@@ -883,11 +1113,13 @@ export default function CatalogManagerTab({ password }) {
                             fontSize: "0.7rem",
                             fontWeight: "700",
                             backgroundColor: "rgba(234, 179, 8, 0.9)",
-                            color: "#0f172a"
+                            color: "#0f172a",
+                            display: "inline-flex",
+                            alignItems: "center"
                           }}
                           title="Featured in Store"
                         >
-                          ⭐
+                          <FiStar size={12} />
                         </span>
                       )}
                       {wp.isVipOnly && (
@@ -898,11 +1130,13 @@ export default function CatalogManagerTab({ password }) {
                             fontSize: "0.7rem",
                             fontWeight: "700",
                             backgroundColor: "rgba(168, 85, 247, 0.9)",
-                            color: "#ffffff"
+                            color: "#ffffff",
+                            display: "inline-flex",
+                            alignItems: "center"
                           }}
                           title="VIP Only"
                         >
-                          👑
+                          <FiAward size={12} />
                         </span>
                       )}
                     </div>
@@ -1616,7 +1850,7 @@ export default function CatalogManagerTab({ password }) {
                       checked={formData.isFeatured}
                       onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })}
                     />
-                    <span>⭐ Featured in Store</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}><FiStar color="#fbbf24" size={14} /> Featured in Store</span>
                   </label>
 
                   <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "0.85rem", color: "#ffffff" }}>
@@ -1625,7 +1859,7 @@ export default function CatalogManagerTab({ password }) {
                       checked={formData.isVipOnly}
                       onChange={(e) => setFormData({ ...formData, isVipOnly: e.target.checked })}
                     />
-                    <span>👑 VIP Only</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}><FiAward color="#c084fc" size={14} /> VIP Only</span>
                   </label>
                 </div>
               </div>

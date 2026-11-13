@@ -9,7 +9,9 @@ import {
   FiClock,
   FiRefreshCw,
   FiAlertCircle,
-  FiCheck
+  FiCheck,
+  FiList,
+  FiGrid
 } from "react-icons/fi";
 import { useModal } from "@/components/ModalContext";
 
@@ -17,6 +19,7 @@ export default function TransfersTab({ password, onActionSuccess }) {
   const { showConfirm, showAlert } = useModal();
   const [locks, setLocks] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [viewMode, setViewMode] = useState("cards"); // 'cards' | 'list'
   const [processingId, setProcessingId] = useState(null);
   const [statusMsg, setStatusMsg] = useState("");
 
@@ -130,15 +133,62 @@ export default function TransfersTab({ password, onActionSuccess }) {
 
       {/* Pending Queue Section */}
       <div className="mission-card">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem", marginBottom: "0.85rem" }}>
           <h3 style={{ fontSize: "0.95rem", fontWeight: "700", color: "#ffffff", display: "flex", alignItems: "center", gap: "6px" }}>
             <FiClock color="#facc15" /> Pending Approval Queue ({pendingTransfers.length})
           </h3>
-          {pendingTransfers.length > 0 && (
-            <span className="status-pill pending">
-              Action Required
-            </span>
-          )}
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            {/* View Mode Toggle */}
+            <div style={{ display: "inline-flex", background: "rgba(13, 17, 24, 0.7)", borderRadius: "8px", padding: "2px", border: "1px solid rgba(255, 255, 255, 0.08)" }}>
+              <button
+                type="button"
+                onClick={() => setViewMode("cards")}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  fontSize: "0.75rem",
+                  fontWeight: "600",
+                  padding: "4px 10px",
+                  borderRadius: "6px",
+                  border: "none",
+                  background: viewMode === "cards" ? "rgba(45, 212, 191, 0.15)" : "transparent",
+                  color: viewMode === "cards" ? "var(--accent-mint)" : "var(--text-muted)",
+                  cursor: "pointer",
+                  transition: "all 0.15s"
+                }}
+              >
+                <FiGrid size={13} />
+                <span>Cards</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("list")}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  fontSize: "0.75rem",
+                  fontWeight: "600",
+                  padding: "4px 10px",
+                  borderRadius: "6px",
+                  border: "none",
+                  background: viewMode === "list" ? "rgba(45, 212, 191, 0.15)" : "transparent",
+                  color: viewMode === "list" ? "var(--accent-mint)" : "var(--text-muted)",
+                  cursor: "pointer",
+                  transition: "all 0.15s"
+                }}
+              >
+                <FiList size={13} />
+                <span>List</span>
+              </button>
+            </div>
+            {pendingTransfers.length > 0 && (
+              <span className="status-pill pending">
+                Action Required
+              </span>
+            )}
+          </div>
         </div>
 
         {pendingTransfers.length === 0 ? (
@@ -147,9 +197,100 @@ export default function TransfersTab({ password, onActionSuccess }) {
             <div style={{ fontSize: "0.9rem", fontWeight: "600", color: "#ffffff" }}>All Transfer Requests Cleared</div>
             <div style={{ fontSize: "0.78rem", marginTop: "4px" }}>No legitimate users are waiting for phone rebind authorization.</div>
           </div>
+        ) : viewMode === "list" ? (
+          /* Table List View for Pending Transfers */
+          <div style={{ overflowX: "auto" }}>
+            <table className="glass-table">
+              <thead>
+                <tr>
+                  <th style={{ width: "45px", textAlign: "center" }}>#</th>
+                  <th>User / Account</th>
+                  <th>Current Phone</th>
+                  <th>Requested New Phone</th>
+                  <th>Reason</th>
+                  <th>Requested Date</th>
+                  <th style={{ textAlign: "right" }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pendingTransfers.map((lock, idx) => {
+                  const req = lock.transferRequest;
+                  const isProcessing = processingId === lock._id;
+
+                  return (
+                    <tr key={lock._id}>
+                      <td style={{ textAlign: "center", color: "var(--text-sub)", fontSize: "0.75rem", fontWeight: "700" }}>
+                        #{idx + 1}
+                      </td>
+                      <td style={{ fontWeight: "600", color: "#ffffff" }}>
+                        {lock.boundEmail}
+                      </td>
+                      <td>
+                        <div>{lock.deviceBrand || "Android"} {lock.deviceModel || "Mobile"}</div>
+                        <div style={{ fontSize: "0.68rem", color: "var(--text-sub)", fontFamily: "JetBrains Mono" }}>
+                          {lock.hardwareFingerprint ? lock.hardwareFingerprint.substring(0, 12) + "..." : "Unknown"}
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ color: "#facc15", fontWeight: "600" }}>
+                          {req.newDeviceBrand || "Android"} {req.newDeviceModel || "Mobile"}
+                        </div>
+                        <div style={{ fontSize: "0.68rem", color: "var(--text-sub)", fontFamily: "JetBrains Mono" }}>
+                          {req.newHardwareFingerprint ? req.newHardwareFingerprint.substring(0, 12) + "..." : "Unknown"}
+                        </div>
+                      </td>
+                      <td style={{ fontSize: "0.76rem", color: "var(--text-muted)", maxWidth: "180px" }}>
+                        &ldquo;{req.reason || "Device switch"}&rdquo;
+                      </td>
+                      <td style={{ fontSize: "0.74rem", color: "var(--text-sub)" }}>
+                        {req.requestedAt ? new Date(req.requestedAt).toLocaleString() : "Recently"}
+                      </td>
+                      <td style={{ textAlign: "right" }}>
+                        <div style={{ display: "inline-flex", gap: "6px" }}>
+                          <button
+                            onClick={() => handleTransfer("reject-transfer", lock)}
+                            disabled={isProcessing}
+                            style={{
+                              padding: "4px 10px",
+                              fontSize: "0.74rem",
+                              fontWeight: "600",
+                              background: "rgba(239, 68, 68, 0.12)",
+                              color: "var(--accent-rose)",
+                              border: "1px solid rgba(239, 68, 68, 0.25)",
+                              borderRadius: "6px",
+                              cursor: "pointer"
+                            }}
+                          >
+                            Reject
+                          </button>
+                          <button
+                            onClick={() => handleTransfer("approve-transfer", lock)}
+                            disabled={isProcessing}
+                            style={{
+                              padding: "4px 12px",
+                              fontSize: "0.74rem",
+                              fontWeight: "700",
+                              background: "rgba(16, 185, 129, 0.2)",
+                              color: "#34d399",
+                              border: "1px solid rgba(16, 185, 129, 0.4)",
+                              borderRadius: "6px",
+                              cursor: "pointer"
+                            }}
+                          >
+                            {isProcessing ? "..." : "Approve"}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         ) : (
+          /* Card View for Pending Transfers */
           <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-            {pendingTransfers.map((lock) => {
+            {pendingTransfers.map((lock, idx) => {
               const req = lock.transferRequest;
               const isProcessing = processingId === lock._id;
 
@@ -163,16 +304,22 @@ export default function TransfersTab({ password, onActionSuccess }) {
                     padding: "1.15rem",
                     display: "flex",
                     flexDirection: "column",
-                    gap: "0.85rem"
+                    gap: "0.85rem",
+                    position: "relative"
                   }}
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "0.5rem" }}>
-                    <div>
-                      <div style={{ fontSize: "0.92rem", fontWeight: "700", color: "#ffffff" }}>
-                        {lock.boundEmail}
-                      </div>
-                      <div style={{ fontSize: "0.75rem", color: "var(--text-sub)", marginTop: "2px" }}>
-                        Reason: &ldquo;{req.reason || "User requested device switch"}&rdquo;
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <span style={{ fontSize: "0.75rem", fontWeight: "800", color: "#facc15", background: "rgba(234, 179, 8, 0.15)", padding: "2px 8px", borderRadius: "5px", border: "1px solid rgba(234, 179, 8, 0.25)" }}>
+                        #{idx + 1}
+                      </span>
+                      <div>
+                        <div style={{ fontSize: "0.92rem", fontWeight: "700", color: "#ffffff" }}>
+                          {lock.boundEmail}
+                        </div>
+                        <div style={{ fontSize: "0.75rem", color: "var(--text-sub)", marginTop: "2px" }}>
+                          Reason: &ldquo;{req.reason || "User requested device switch"}&rdquo;
+                        </div>
                       </div>
                     </div>
 
@@ -266,13 +413,14 @@ export default function TransfersTab({ password, onActionSuccess }) {
       {/* Resolved Transfers History */}
       {resolvedTransfers.length > 0 && (
         <div className="mission-card">
-          <h3 style={{ fontSize: "0.95rem", fontWeight: "700", color: "#ffffff" }}>
+          <h3 style={{ fontSize: "0.95rem", fontWeight: "700", color: "#ffffff", marginBottom: "0.85rem" }}>
             Recent Transfer Decisions ({resolvedTransfers.length})
           </h3>
           <div style={{ overflowX: "auto" }}>
             <table className="glass-table">
               <thead>
                 <tr>
+                  <th style={{ width: "45px", textAlign: "center" }}>#</th>
                   <th>User</th>
                   <th>Current Phone</th>
                   <th>Decision</th>
@@ -280,12 +428,16 @@ export default function TransfersTab({ password, onActionSuccess }) {
                 </tr>
               </thead>
               <tbody>
-                {resolvedTransfers.map((l) => (
+                {resolvedTransfers.map((l, idx) => (
                   <tr key={l._id}>
-                    <td>{l.boundEmail}</td>
+                    <td style={{ textAlign: "center", color: "var(--text-sub)", fontSize: "0.75rem", fontWeight: "700" }}>
+                      #{idx + 1}
+                    </td>
+                    <td style={{ fontWeight: "600" }}>{l.boundEmail}</td>
                     <td>{l.deviceBrand} {l.deviceModel}</td>
                     <td>
                       <span className={`status-pill ${l.transferRequest.status === "APPROVED" ? "active" : "banned"}`}>
+                        {l.transferRequest.status === "APPROVED" ? <FiCheckCircle size={10} style={{ marginRight: 3 }} /> : <FiXCircle size={10} style={{ marginRight: 3 }} />}
                         {l.transferRequest.status}
                       </span>
                     </td>

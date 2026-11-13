@@ -11,7 +11,7 @@ export async function GET(request) {
     const authHeader = request.headers.get("x-admin-authorization");
     const authQuery = searchParams.get("auth");
 
-    // 🔒 Auth verification
+    // Admin Auth verification
     const validPassword = process.env.ADMIN_PASSWORD || "romeoPistol";
     if (authHeader !== validPassword && authQuery !== validPassword) {
       return NextResponse.json(

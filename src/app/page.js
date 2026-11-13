@@ -53,7 +53,9 @@ import {
   FiCpu,
   FiBatteryCharging,
   FiMonitor,
-  FiHardDrive
+  FiHardDrive,
+  FiList,
+  FiGrid
 } from "react-icons/fi";
 
 export default function AdminAnalyticsDashboard() {
@@ -79,6 +81,7 @@ export default function AdminAnalyticsDashboard() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
   const [mobileTab, setMobileTab] = useState("sessions"); // 'sessions' | 'journey'
+  const [sessionViewMode, setSessionViewMode] = useState("cards"); // 'cards' | 'list'
 
   // Timeline controls
   const [timelineFilter, setTimelineFilter] = useState("all"); // 'all', 'wallpapers', 'clicks', 'errors'
@@ -840,7 +843,7 @@ export default function AdminAnalyticsDashboard() {
       <main className="analytics-body">
         {/* Left Panel: Session Stream */}
         <section className={`session-panel ${mobileTab !== "sessions" ? "mobile-hidden" : ""}`}>
-          <div className="panel-title">
+          <div className="panel-title" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <h2>Recent Activity Sessions</h2>
               <span className="records-badge">
@@ -848,12 +851,61 @@ export default function AdminAnalyticsDashboard() {
                 {totalRecords} {totalRecords === 1 ? "Session" : "Sessions"}
               </span>
             </div>
-            {selectedDate && (
-              <span style={{ fontSize: "0.68rem", color: "var(--accent-mint)" }}>
-                <FiSun size={10} style={{ marginRight: "3px" }} />
-                Filtered by Day
-              </span>
-            )}
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              {selectedDate && (
+                <span style={{ fontSize: "0.68rem", color: "var(--accent-mint)", display: "inline-flex", alignItems: "center" }}>
+                  <FiSun size={10} style={{ marginRight: "3px" }} />
+                  Filtered by Day
+                </span>
+              )}
+              {/* View Mode Toggle: Cards vs List */}
+              <div style={{ display: "inline-flex", background: "rgba(255, 255, 255, 0.04)", padding: "2px", borderRadius: "6px", border: "1px solid rgba(255, 255, 255, 0.08)" }}>
+                <button
+                  type="button"
+                  onClick={() => setSessionViewMode("cards")}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    padding: "3px 8px",
+                    borderRadius: "4px",
+                    border: "none",
+                    background: sessionViewMode === "cards" ? "rgba(45, 212, 191, 0.2)" : "transparent",
+                    color: sessionViewMode === "cards" ? "var(--accent-mint)" : "var(--text-sub)",
+                    cursor: "pointer",
+                    fontSize: "0.7rem",
+                    fontWeight: "600",
+                    transition: "all 0.15s"
+                  }}
+                  title="Card View"
+                >
+                  <FiGrid size={11} />
+                  <span>Cards</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSessionViewMode("list")}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    padding: "3px 8px",
+                    borderRadius: "4px",
+                    border: "none",
+                    background: sessionViewMode === "list" ? "rgba(45, 212, 191, 0.2)" : "transparent",
+                    color: sessionViewMode === "list" ? "var(--accent-mint)" : "var(--text-sub)",
+                    cursor: "pointer",
+                    fontSize: "0.7rem",
+                    fontWeight: "600",
+                    transition: "all 0.15s"
+                  }}
+                  title="List View"
+                >
+                  <FiList size={11} />
+                  <span>List</span>
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="sessions-list">
@@ -865,8 +917,8 @@ export default function AdminAnalyticsDashboard() {
                   Try resetting date or search filters
                 </span>
               </div>
-            ) : (
-              sessions.map((sess) => {
+            ) : sessionViewMode === "cards" ? (
+              sessions.map((sess, idx) => {
                 const isSelected = selectedSession?.sessionId === sess.sessionId;
                 const initial = getUserInitials(sess);
                 const eventCount = sess.events?.length || 0;
@@ -876,6 +928,7 @@ export default function AdminAnalyticsDashboard() {
                   minute: "2-digit",
                   second: "2-digit"
                 });
+                const serial = (page - 1) * 30 + idx + 1;
 
                 return (
                   <div
@@ -888,6 +941,21 @@ export default function AdminAnalyticsDashboard() {
                   >
                     <div className="card-top">
                       <div className="user-profile">
+                        <span
+                          style={{
+                            fontSize: "0.68rem",
+                            fontWeight: "700",
+                            color: isSelected ? "var(--accent-mint)" : "var(--text-sub)",
+                            background: "rgba(255, 255, 255, 0.05)",
+                            border: "1px solid rgba(255, 255, 255, 0.08)",
+                            borderRadius: "4px",
+                            padding: "2px 5px",
+                            fontFamily: "monospace",
+                            flexShrink: 0
+                          }}
+                        >
+                          #{serial}
+                        </span>
                         {sess.userPhoto ? (
                           <img
                             src={sess.userPhoto}
@@ -971,6 +1039,132 @@ export default function AdminAnalyticsDashboard() {
                   </div>
                 );
               })
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px", width: "100%" }}>
+                {sessions.map((sess, idx) => {
+                  const isSelected = selectedSession?.sessionId === sess.sessionId;
+                  const initial = getUserInitials(sess);
+                  const eventCount = sess.events?.length || 0;
+                  const errorCount = (sess.events || []).filter((e) => e.status === "FAILED").length;
+                  const formattedTime = new Date(sess.updatedAt || sess.createdAt).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit"
+                  });
+                  const serial = (page - 1) * 30 + idx + 1;
+
+                  return (
+                    <div
+                      key={sess.sessionId}
+                      onClick={() => {
+                        setSelectedSession(sess);
+                        setMobileTab("journey");
+                      }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "8px 10px",
+                        background: isSelected ? "rgba(45, 212, 191, 0.08)" : "rgba(255, 255, 255, 0.02)",
+                        border: isSelected ? "1px solid var(--accent-mint)" : "1px solid rgba(255, 255, 255, 0.06)",
+                        borderRadius: "8px",
+                        cursor: "pointer",
+                        transition: "all 0.15s",
+                        gap: "8px"
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
+                        <span
+                          style={{
+                            fontSize: "0.68rem",
+                            fontWeight: "700",
+                            color: isSelected ? "var(--accent-mint)" : "var(--text-sub)",
+                            fontFamily: "monospace",
+                            minWidth: "26px"
+                          }}
+                        >
+                          #{serial}
+                        </span>
+                        {sess.userPhoto ? (
+                          <img
+                            src={sess.userPhoto}
+                            alt="Avatar"
+                            className="user-avatar"
+                            style={{ width: "22px", height: "22px" }}
+                            onError={(e) => {
+                              e.target.style.display = "none";
+                            }}
+                          />
+                        ) : (
+                          <div className="guest-avatar" style={{ width: "22px", height: "22px", fontSize: "0.65rem" }}>
+                            {initial}
+                          </div>
+                        )}
+                        <div style={{ minWidth: 0 }}>
+                          <div
+                            style={{
+                              fontSize: "0.76rem",
+                              fontWeight: "600",
+                              color: isSelected ? "#fff" : "var(--text-main)",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap"
+                            }}
+                          >
+                            {sess.userName ||
+                              (sess.email ? sess.email.split("@")[0] : `${sess.deviceBrand || "Android"} Device`)}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: "0.66rem",
+                              color: "var(--text-sub)",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap"
+                            }}
+                          >
+                            {sess.email || `${sess.deviceBrand || "Android"} ${sess.deviceModel || ""}`}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
+                        {errorCount > 0 && (
+                          <span
+                            style={{
+                              fontSize: "0.62rem",
+                              fontWeight: "700",
+                              background: "rgba(239, 68, 68, 0.15)",
+                              color: "var(--accent-rose)",
+                              padding: "1px 4px",
+                              borderRadius: "4px",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "2px"
+                            }}
+                          >
+                            <FiAlertTriangle size={8} /> {errorCount}
+                          </span>
+                        )}
+                        <span
+                          style={{
+                            fontSize: "0.66rem",
+                            color: "var(--accent-mint)",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "2px"
+                          }}
+                        >
+                          <FiZap size={9} /> {eventCount}
+                        </span>
+                        <span style={{ fontSize: "0.66rem", color: "var(--text-sub)", fontFamily: "monospace" }}>
+                          {formattedTime}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
 
