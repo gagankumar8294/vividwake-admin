@@ -1,11 +1,10 @@
 // src/lib/mongodb.js
 import mongoose from "mongoose";
 
-const MONGO_URL = process.env.MONGO_URL;
-
-if (!MONGO_URL) {
-  throw new Error("Please define the MONGO_URL environment variable inside .env.local");
-}
+const MONGO_URL =
+  process.env.MONGO_URL ||
+  process.env.MONGODB_URI ||
+  "mongodb+srv://gagankumar8294_db_user:oQvMSXfMZjYotGT7@cluster0.kfodfcn.mongodb.net/vividwake?retryWrites=true&w=majority";
 
 let cached = global.mongoose;
 
@@ -14,14 +13,23 @@ if (!cached) {
 }
 
 async function connectDB() {
+  const url =
+    process.env.MONGO_URL ||
+    process.env.MONGODB_URI ||
+    MONGO_URL;
+
+  if (!url) {
+    throw new Error("Please define MONGO_URL or MONGODB_URI in environment variables");
+  }
+
   if (cached.conn) {
     return cached.conn;
   }
 
   if (!cached.promise) {
     cached.promise = mongoose
-      .connect(MONGO_URL, {
-        serverSelectionTimeoutMS: 5000
+      .connect(url, {
+        serverSelectionTimeoutMS: 15000
       })
       .then((instance) => instance);
   }

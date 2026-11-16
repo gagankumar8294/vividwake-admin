@@ -58,7 +58,21 @@ import {
   FiGrid
 } from "react-icons/fi";
 
-export default function AdminAnalyticsDashboard() {
+export default function AdminAnalyticsDashboard({ forceAdmin = false }) {
+  const [isAdminHost, setIsAdminHost] = useState(forceAdmin);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && !forceAdmin) {
+      const host = window.location.hostname;
+      const search = window.location.search;
+      if (host === "vividwake.gksky.in" && !search.includes("admin")) {
+        setIsAdminHost(false);
+      } else {
+        setIsAdminHost(true);
+      }
+    }
+  }, [forceAdmin]);
+
   const { showConfirm, showAlert } = useModal();
   const [password, setPassword] = useState("");
   const [inputPassword, setInputPassword] = useState("");
@@ -421,6 +435,13 @@ export default function AdminAnalyticsDashboard() {
     const name = session.userName || session.email?.split("@")[0] || "Guest";
     return name.charAt(0).toUpperCase();
   };
+
+  // ──────────────────────────────────────────────────────────
+  // 0. Domain routing: If accessed from vividwake.gksky.in root, serve public website
+  // ──────────────────────────────────────────────────────────
+  if (!isAdminHost && !forceAdmin) {
+    return <InstallGuidePage />;
+  }
 
   // ──────────────────────────────────────────────────────────
   // 1. Password Protection Gate
